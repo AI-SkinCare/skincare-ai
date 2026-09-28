@@ -1,0 +1,6 @@
+# 추론 서버 (GPU 없이 REC_BACKEND=mock 으로도 실행 가능)
+fastapi==0.115.*
+uvicorn[standard]>=0.30
+pydantic>=2.7,<3
+python-multipart>=0.0.9
+pyyaml>=6.0

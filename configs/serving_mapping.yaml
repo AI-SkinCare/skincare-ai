@@ -1,0 +1,45 @@
+# 서빙 시 (설문 + 피부 측정값) → 추천 모델 입력(RecInput) 변환 규칙
+# [확인필요] 표시는 박성근 회귀 모델의 실제 출력 분포를 보고 보정해야 하는 값
+
+# initial_skin_condition 코드는 의미가 일부 미확인(docs/label_spec.md) → 측정값으로 추측해 채우지 않음
+use_condition_codes: false
+
+# 측정값(0~1) → 고민 도출 임계값 [확인필요]
+# direction: high = 값이 클수록 나쁨, low = 값이 작을수록 나쁨
+metric_concerns:
+  pore:         {concern: "모공", threshold: 0.60, direction: high}
+  pigmentation: {concern: "미백(색소침착/기미/칙칙함)", threshold: 0.60, direction: high}
+  elasticity:   {concern: "주름", threshold: 0.40, direction: low}
+  moisture:     {concern: "과각질/악건성", threshold: 0.30, direction: low}
+
+max_concerns: 2   # 학습 데이터는 고민 1~2개
+
+# 설문 자유 응답 → 8종 고민 라벨
+concern_synonyms:
+  "과각질/악건성": [건조, 건조함, 각질, 악건성, 당김, 푸석]
+  "모공": [모공, 블랙헤드, 피지]
+  "미백(색소침착/기미/칙칙함)": [미백, 기미, 잡티, 색소, 칙칙, 톤, 주근깨]
+  "민감성(트러블/자극감)": [민감, 자극, 따가움, 트러블]
+  "붉어짐(홍조)": [홍조, 붉어짐, 붉은기, 열감]
+  "여드름/뾰루지": [여드름, 뾰루지, 좁쌀]
+  "주름": [주름, 잔주름, 눈가]
+  "피부처짐/탄력저하": [탄력, 처짐, 늘어짐, 리프팅]
+
+skin_type_synonyms:
+  건성: [dry, 건성]
+  중성: [normal, 중성]
+  지성: [oily, 지성]
+  복합성: [combination, 복합성, 복합]
+
+# 피부 타입을 설문에서 받지 못했을 때 측정값으로 추정 (피지 지표가 없어 정확도 낮음) [확인필요]
+skin_type_fallback:
+  moisture_dry_below: 0.35     # 이하면 건성, 아니면 중성
+
+age_band_midpoint: {"10s": 17, "20s": 25, "30s": 35, "40s": 45, "50s": 55, "60s": 65, "70s": 72}
+
+# 설문 → 외부 요인 (학습 데이터 7종 어휘에 맞춤)
+external_rules:
+  sunExposureLevel: {high: ["자외선/블루라이트", "야외 활동 많음"]}
+  stressLevel: {high: ["스트레스", "스트레스 높음"]}
+  sleepHours_below: {value: 6, factor: ["생활습관", "수면 부족"]}
+  waterIntakeLevel: {low: ["생활습관", "수분 섭취 부족"]}

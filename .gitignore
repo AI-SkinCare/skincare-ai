@@ -216,3 +216,14 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# ── skincare-ai ──
+# AI허브 데이터 및 파생 산출물은 공개 저장소에 올리지 않는다 (AI허브 이용약관: 데이터 재배포 금지)
+data/
+outputs/
+*.safetensors
+*.bin
+*.pt
+*.onnx
+# 로컬 IDE (개인 설정)
+.idea/
