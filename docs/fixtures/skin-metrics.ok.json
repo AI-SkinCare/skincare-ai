@@ -1,0 +1,18 @@
+{
+  "roi_detected": [
+    "full_face"
+  ],
+  "metrics": {
+    "full_face": {
+      "moisture": 0.697,
+      "elasticity": 0.493,
+      "pigmentation": 0.434,
+      "pore": 0.658
+    }
+  },
+  "confidence": 0.0,
+  "calibration_applied": false,
+  "is_stub": true,
+  "model_version": "skin_reg_stub",
+  "inference_ms": 0
+}
