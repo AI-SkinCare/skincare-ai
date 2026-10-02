@@ -16,8 +16,9 @@ SURVEY = {"gender": "female", "ageBand": "20s", "sleepHours": 5, "sunExposureLev
 
 
 @pytest.fixture(scope="module")
-def client():
-    app = create_app(Settings(internal_token=TOKEN, rec_backend="mock", skin_backend="stub"))
+def client(tmp_path_factory):
+    app = create_app(Settings(internal_token=TOKEN, rec_backend="mock", skin_backend="stub",
+                              processed_dir=tmp_path_factory.mktemp("no-processed-data")))
     with TestClient(app) as c:
         yield c
 

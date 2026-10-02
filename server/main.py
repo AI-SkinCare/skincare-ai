@@ -77,8 +77,6 @@ def create_app(cfg: Settings | None = None) -> FastAPI:
     async def lifespan(app: FastAPI):
         dict_path = cfg.processed_dir / "ingredient_dict.json"
         state["extractor"] = IngredientExtractor.load(dict_path) if dict_path.exists() else None
-        if state["extractor"] is None:
-            log.warning("ingredient_dict.json 없음 → 성분 구조화 비활성 (prepare_data 실행 필요)")
         top = cfg.processed_dir / "concern_top_ingredients.json"
         if cfg.rec_backend == "sllm":
             log.info("sLLM 로드 중: %s + %s", cfg.rec_base_model, cfg.rec_adapter_dir)
@@ -87,8 +85,14 @@ def create_app(cfg: Settings | None = None) -> FastAPI:
                                         max_new_tokens=cfg.rec_max_new_tokens, top_path=top).load())
         elif cfg.rec_backend == "mock":
             state["rec"] = MockRecommender(top)
+            if state["extractor"] is None:
+                names = (name for names in state["rec"].rule.top.values() for name in names)
+                state["extractor"] = IngredientExtractor(
+                    {"".join(name.split()).upper(): name for name in names})
         else:
             raise ValueError(f"알 수 없는 REC_BACKEND: {cfg.rec_backend}")
+        if state["extractor"] is None:
+            log.warning("ingredient_dict.json 없음 → 성분 구조화 비활성 (prepare_data 실행 필요)")
         state["skin"] = load_skin_regressor(cfg.skin_backend)
         state["filter"] = OutputFilter.from_yaml()
         state["mapping"] = load_mapping()
