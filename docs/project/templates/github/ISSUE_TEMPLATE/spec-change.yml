@@ -1,0 +1,24 @@
+name: 명세 변경
+description: API·DB·열거형 변경 (프론트·백엔드·AI 동시 영향)
+labels: ["spec"]
+body:
+  - type: textarea
+    id: change
+    attributes: { label: 바꿀 내용, description: 문서 이름과 절 번호, 바꾸기 전/후 }
+    validations: { required: true }
+  - type: textarea
+    id: why
+    attributes: { label: 이유 }
+    validations: { required: true }
+  - type: checkboxes
+    id: impact
+    attributes:
+      label: 영향받는 레포
+      options:
+        - label: skincare-frontend
+        - label: skincare-backend
+        - label: skincare-ai
+  - type: dropdown
+    id: compat
+    attributes: { label: 호환성, options: ["추가만 (기존 동작 유지)", "호환 깨짐 (동시 배포 필요)"] }
+    validations: { required: true }

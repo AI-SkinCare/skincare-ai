@@ -1,0 +1,19 @@
+name: 기능
+description: 새 기능 또는 기능 변경
+labels: ["feat"]
+body:
+  - type: input
+    id: req
+    attributes: { label: 요구사항 ID, placeholder: "FR-ANA-01" }
+  - type: textarea
+    id: what
+    attributes: { label: 할 일, description: 무엇을 만드는지 }
+    validations: { required: true }
+  - type: textarea
+    id: done
+    attributes: { label: 완료 기준, description: 요구사항 정의서의 수용 기준 + 추가 조건 }
+    validations: { required: true }
+  - type: dropdown
+    id: area
+    attributes: { label: 영역, options: [fe, be, ai, infra, docs] }
+    validations: { required: true }

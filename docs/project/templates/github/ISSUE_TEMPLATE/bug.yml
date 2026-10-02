@@ -1,0 +1,22 @@
+name: 버그
+description: 기대와 다르게 동작함
+labels: ["bug"]
+body:
+  - type: dropdown
+    id: severity
+    attributes: { label: 심각도, options: ["P0 시연·핵심 흐름 차단", "P1 기능 일부 오동작", "P2 표시·문구"] }
+    validations: { required: true }
+  - type: textarea
+    id: steps
+    attributes: { label: 재현 절차, placeholder: "1. ...\n2. ..." }
+    validations: { required: true }
+  - type: textarea
+    id: expected
+    attributes: { label: 기대 결과 / 실제 결과 }
+    validations: { required: true }
+  - type: input
+    id: reqid
+    attributes: { label: 요청 ID (X-Request-Id), description: 오류 화면이나 응답 헤더에서 확인 }
+  - type: textarea
+    id: env
+    attributes: { label: 환경, placeholder: "기기·브라우저, 로컬/스테이징, AI_MODE" }
