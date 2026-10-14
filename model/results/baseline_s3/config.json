@@ -1,0 +1,27 @@
+{
+  "split_dir": "/home/psg/skin-disease/splits",
+  "run_name": "baseline_s3",
+  "epochs": 11,
+  "batch_size": 32,
+  "lr": 0.001,
+  "dropout": 0.5,
+  "image_size": 256,
+  "num_workers": 8,
+  "seed": 3,
+  "gpu": 3,
+  "amp": false,
+  "no_pretrained": false,
+  "memory_efficient": false,
+  "deterministic": false,
+  "device": "cuda:3",
+  "optimizer": "adam",
+  "class_names": [
+    "건선",
+    "아토피",
+    "여드름",
+    "정상",
+    "주사",
+    "지루"
+  ],
+  "torch": "2.3.1+cu121"
+}

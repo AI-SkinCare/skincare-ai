@@ -1,0 +1,13 @@
+{
+  "run": "baseline_s42",
+  "ckpt": "/home/psg/skin-disease/checkpoints/baseline_s42/best.pt",
+  "ckpt_epoch": 8,
+  "split": "test",
+  "n": 1080,
+  "accuracy": 0.924074074074074,
+  "macro_f1": 0.9243426020372943,
+  "accuracy_by_view": {
+    "front": 0.8574074074074074,
+    "side": 0.9907407407407407
+  }
+}
