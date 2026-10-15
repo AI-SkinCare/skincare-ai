@@ -1,0 +1,28 @@
+# 분류 라벨을 기존 Qwen2.5가 학습한 '스킨케어 고민'으로 라우팅한다.
+# 증상 확정·질환 치료 정답·전문가 검증 결과를 의미하지 않는다.
+# 건선의 각질을 '과각질/악건성'에 바로 연결하면 스크럽을 추천할 수 있어
+# 질환을 모르는 기존 어댑터에는 민감성 관리만 우선 전달한다.
+labels:
+  psoriasis:
+    concerns: ["민감성(트러블/자극감)"]
+    care_note: "건조하고 민감할 수 있는 피부의 보습과 자극 최소화 중심으로 안내하세요. 각질을 문지르거나 벗기는 관리는 제안하지 마세요."
+  atopic:
+    concerns: ["민감성(트러블/자극감)"]
+    care_note: "민감할 수 있는 피부의 보습과 장벽 관리 중심으로 안내하세요. 향료나 스크럽 등 자극 가능성이 있는 관리는 피하세요."
+  acne:
+    concerns: ["여드름/뾰루지"]
+    care_note: "여드름성 피부의 순한 세안과 기본 스킨케어를 안내하세요. 의약품이나 치료를 처방하지 마세요."
+  normal:
+    concerns: []
+    care_note: "이 모델의 정상 분류는 모든 피부 이상이 없다는 의미가 아닙니다. 사용자가 선택한 고민을 기준으로 안내하세요."
+  rosacea:
+    concerns: ["붉어짐(홍조)", "민감성(트러블/자극감)"]
+    care_note: "붉어지고 민감할 수 있는 피부의 순한 보습 관리 중심으로 안내하세요. 스크럽이나 자극이 강한 각질 제거는 제안하지 마세요."
+  seborrheic:
+    concerns: ["민감성(트러블/자극감)"]
+    care_note: "민감할 수 있는 피부의 순한 세안과 보습 관리만 안내하세요. 항진균제 등 질환 치료제를 추천하지 마세요."
+
+# 아래 자료는 관리 원칙을 참고한 출처이며 라벨→고민 변환의 임상 검증이 아니다.
+references:
+  - https://www.aad.org/public/diseases/eczema/types/atopic-dermatitis/atopic-dermatitis-coping
+  - https://www.aad.org/public/diseases/rosacea/triggers/tips

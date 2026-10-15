@@ -1,0 +1,8 @@
+# 기존 CUDA PyTorch를 유지한다. torch/torchvision은 docs/disease-pipeline.md 참고.
+-r requirements.txt
+Pillow>=10.2,<13
+torch>=2.6
+torchvision>=0.21
+# 실제 HTTP 품질 점검 스크립트용 (httpx는 requirements-dev.txt)
+numpy>=1.26
+psutil>=7,<8

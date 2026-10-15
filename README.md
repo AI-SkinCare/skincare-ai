@@ -55,6 +55,15 @@ data/, outputs/ 가공 데이터·모델·평가 결과 (git 제외)
 pytest
 ```
 
+## 이미지 분류 → Qwen2.5 성분 추천
+
+6종 DenseNet121 분류 결과를 기존 Qwen2.5 어댑터의 피부 고민 입력으로 변환해 추천합니다.
+실행·API·분류가 불확실할 때의 처리는 [파이프라인 가이드](docs/disease-pipeline.md)를 참고하세요.
+**Swift 앱 → Spring Boot → FastAPI** 구성과 담당자별 변경은 [개정 수행계획서](docs/project/09-revised-project-plan.md),
+요청·응답 예시는 [계약 fixture](docs/fixtures/disease-pipeline/README.md), 실제 시험의 한계는 [품질 점검](docs/disease-pipeline-quality-20261015.md)에 정리했습니다.
+기존 `run_server.ps1`은 기존 모드로, 새 `scripts/run_disease_pipeline.ps1`은 두 모델을 함께 실행합니다.
+질환 치료제나 진단을 제공하는 모델로 재학습한 것은 아니며, 추천 범위는 화장품 수준의 보조 관리입니다.
+
 ## 관련 저장소
 
 - [skincare-frontend](https://github.com/AI-SkinCare/skincare-frontend) — 프론트엔드

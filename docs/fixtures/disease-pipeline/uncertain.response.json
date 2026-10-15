@@ -1,0 +1,25 @@
+{
+  "disease": {
+    "label": "아토피",
+    "label_en": "atopic",
+    "confidence": 0.55,
+    "uncertain": true,
+    "probabilities": {
+      "건선": 0.09,
+      "아토피": 0.55,
+      "여드름": 0.09,
+      "정상": 0.09,
+      "주사": 0.09,
+      "지루": 0.09
+    },
+    "model_version": "quality_test_fixture_not_a_patient_prediction",
+    "inference_ms": 0
+  },
+  "recommendation": null,
+  "recommendation_status": "uncertain",
+  "guidance": [
+    "이미지 모델의 6종 분류 참고 결과이며 의학적 진단이 아닙니다. 분류 점수만으로 다른 질환을 배제할 수 없습니다.",
+    "성분 추천은 화장품 수준의 보조 관리 정보입니다. 질환 확인과 치료는 피부과 전문의와 상담하세요.",
+    "분류가 불확실해 자동 성분 추천을 보류했습니다. 재촬영 또는 피부과 전문의 상담을 권합니다."
+  ]
+}

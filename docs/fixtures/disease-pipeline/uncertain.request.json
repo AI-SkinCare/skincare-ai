@@ -1,0 +1,23 @@
+{
+  "disease": {
+    "label": "아토피",
+    "label_en": "atopic",
+    "confidence": 0.55,
+    "uncertain": false,
+    "probabilities": {
+      "건선": 0.09,
+      "아토피": 0.55,
+      "여드름": 0.09,
+      "정상": 0.09,
+      "주사": 0.09,
+      "지루": 0.09
+    },
+    "model_version": "quality_test_fixture_not_a_patient_prediction"
+  },
+  "survey": {
+    "gender": "female",
+    "age": 35,
+    "skinType": "dry",
+    "selfReportedConcerns": []
+  }
+}

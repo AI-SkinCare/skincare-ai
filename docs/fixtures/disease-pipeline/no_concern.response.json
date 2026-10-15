@@ -1,0 +1,24 @@
+{
+  "disease": {
+    "label": "정상",
+    "label_en": "normal",
+    "confidence": 0.9,
+    "uncertain": false,
+    "probabilities": {
+      "건선": 0.019999999999999997,
+      "아토피": 0.019999999999999997,
+      "여드름": 0.019999999999999997,
+      "정상": 0.9,
+      "주사": 0.019999999999999997,
+      "지루": 0.019999999999999997
+    },
+    "model_version": "quality_test_fixture_not_a_patient_prediction",
+    "inference_ms": 0
+  },
+  "recommendation": null,
+  "recommendation_status": "no_concern",
+  "guidance": [
+    "이미지 모델의 6종 분류 참고 결과이며 의학적 진단이 아닙니다. 분류 점수만으로 다른 질환을 배제할 수 없습니다.",
+    "정상으로 분류됐으며 선택한 고민이 없어 성분 추천을 생략했습니다. 필요하면 고민을 선택해 주세요."
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "disease": {
+    "label": "정상",
+    "label_en": "normal",
+    "confidence": 0.9,
+    "uncertain": false,
+    "probabilities": {
+      "건선": 0.019999999999999997,
+      "아토피": 0.019999999999999997,
+      "여드름": 0.019999999999999997,
+      "정상": 0.9,
+      "주사": 0.019999999999999997,
+      "지루": 0.019999999999999997
+    },
+    "model_version": "quality_test_fixture_not_a_patient_prediction"
+  },
+  "survey": {
+    "gender": "female",
+    "age": 35,
+    "skinType": "dry",
+    "selfReportedConcerns": []
+  }
+}

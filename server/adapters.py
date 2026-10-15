@@ -46,6 +46,11 @@ def _match(text: str, table: dict[str, list[str]]) -> str | None:
     return None
 
 
+def normalize_concerns(concerns: list[str], mapping: dict[str, Any]) -> list[str]:
+    return list(dict.fromkeys(label for c in concerns
+                             if (label := _match(c, mapping["concern_synonyms"]))))
+
+
 def build_rec_input(survey: Survey, metrics: dict[str, dict[str, float]] | None,
                     mapping: dict[str, Any]) -> tuple[RecInput, list[str]]:
     notes: list[str] = []  # 응답에 포함해 백엔드/프론트가 추정 여부를 알 수 있게 함
@@ -69,11 +74,7 @@ def build_rec_input(survey: Survey, metrics: dict[str, dict[str, float]] | None,
         notes.append(f"피부 타입 미입력 → 측정값 기반 추정({skin_type}, 정확도 낮음)")
 
     # 고민: 사용자 자가응답 우선, 다음으로 측정값에서 심각도 순
-    concerns: list[str] = []
-    for c in survey.selfReportedConcerns:
-        label = _match(c, mapping["concern_synonyms"])
-        if label and label not in concerns:
-            concerns.append(label)
+    concerns = normalize_concerns(survey.selfReportedConcerns, mapping)
     if m:
         scored = []
         for key, rule in mapping["metric_concerns"].items():

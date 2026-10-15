@@ -224,6 +224,8 @@ outputs/
 *.safetensors
 *.bin
 *.pt
+# 공개 판별 브랜치에서 가져온 배포 가중치(28MB)만 예외
+!model/weights/densenet121_s2.pt
 *.onnx
 # 로컬 IDE (개인 설정)
 .idea/

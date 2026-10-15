@@ -26,9 +26,11 @@ from src.llm.output_filter import OutputFilter
 
 from .adapters import build_rec_input, load_mapping
 from .config import Settings, settings as default_settings
+from .disease_classifier import DenseNetDiseaseClassifier, InvalidDiseaseImage
+from .disease_pipeline import build_disease_rec_input, disease_guidance, filter_disease_output, load_disease_mapping
 from .postprocess import structure_ingredients, structure_routine
-from .schemas import (AnalyzeResponse, HealthResponse, ModelInfo, RecommendRequest, RecommendResponse,
-                      SkinMetricsResponse, Survey)
+from .schemas import (AnalyzeResponse, DiseaseAnalyzeResponse, DiseasePrediction, DiseaseRecommendRequest,
+                      HealthResponse, ModelInfo, RecommendRequest, RecommendResponse, SkinMetricsResponse, Survey)
 from .skin_regressor import load_skin_regressor
 
 log = logging.getLogger("skincare-ai")
@@ -77,8 +79,6 @@ def create_app(cfg: Settings | None = None) -> FastAPI:
     async def lifespan(app: FastAPI):
         dict_path = cfg.processed_dir / "ingredient_dict.json"
         state["extractor"] = IngredientExtractor.load(dict_path) if dict_path.exists() else None
-        if state["extractor"] is None:
-            log.warning("ingredient_dict.json 없음 → 성분 구조화 비활성 (prepare_data 실행 필요)")
         top = cfg.processed_dir / "concern_top_ingredients.json"
         if cfg.rec_backend == "sllm":
             log.info("sLLM 로드 중: %s + %s", cfg.rec_base_model, cfg.rec_adapter_dir)
@@ -87,13 +87,31 @@ def create_app(cfg: Settings | None = None) -> FastAPI:
                                         max_new_tokens=cfg.rec_max_new_tokens, top_path=top).load())
         elif cfg.rec_backend == "mock":
             state["rec"] = MockRecommender(top)
+            if state["extractor"] is None:
+                # 데이터 없는 새 clone에서도 규칙 기반 개발 응답을 구조화한다.
+                names = (name for names in state["rec"].rule.top.values() for name in names)
+                state["extractor"] = IngredientExtractor({"".join(name.split()).upper(): name for name in names})
         else:
             raise ValueError(f"알 수 없는 REC_BACKEND: {cfg.rec_backend}")
+        if state["extractor"] is None:
+            log.warning("ingredient_dict.json 없음 → 성분 구조화 비활성 (prepare_data 실행 필요)")
         state["skin"] = load_skin_regressor(cfg.skin_backend)
         state["filter"] = OutputFilter.from_yaml()
         state["mapping"] = load_mapping()
         state["rec_gate"] = Gate(cfg.rec_concurrency, cfg.queue_limit)
         state["skin_gate"] = Gate(cfg.skin_concurrency, cfg.queue_limit)
+        state["disease_mapping"] = load_disease_mapping()
+        if not 0 <= cfg.disease_threshold <= 1:
+            raise ValueError("DISEASE_THRESHOLD는 0~1이어야 합니다")
+        if cfg.disease_backend == "densenet":
+            state["disease"] = await run_in_threadpool(
+                lambda: DenseNetDiseaseClassifier(cfg.disease_weights, cfg.disease_device,
+                                                   cfg.disease_threshold).load())
+        elif cfg.disease_backend != "disabled":
+            raise ValueError(f"알 수 없는 DISEASE_BACKEND: {cfg.disease_backend}")
+        # GPU를 명시한 경우 Qwen과 같은 슬롯 사용. 기본 CPU는 독립 직렬 처리.
+        state["disease_gate"] = (state["rec_gate"] if cfg.disease_device.startswith("cuda")
+                                  else Gate(1, cfg.queue_limit))
         if not cfg.internal_token:
             log.warning("AI_INTERNAL_TOKEN 미설정 → 모든 보호 엔드포인트가 401을 반환합니다")
         yield
@@ -107,7 +125,9 @@ def create_app(cfg: Settings | None = None) -> FastAPI:
 
     @app.exception_handler(RequestValidationError)
     async def _val_err(_: Request, e: RequestValidationError):
-        return _err("E4002", 422, "요청 형식이 올바르지 않습니다.", json.loads(json.dumps(e.errors(), default=str)))
+        # 비정상 확률(NaN/Inf)이나 업로드 원문을 오류 응답에 재삽입하지 않는다.
+        details = [{k: v for k, v in error.items() if k not in {"input", "ctx"}} for error in e.errors()]
+        return _err("E4002", 422, "요청 형식이 올바르지 않습니다.", json.loads(json.dumps(details, default=str)))
 
     def auth(x_internal_token: str | None = Header(default=None)):
         # 토큰 미설정 시에도 닫힌 상태로 동작 (fail-closed)
@@ -135,8 +155,14 @@ def create_app(cfg: Settings | None = None) -> FastAPI:
             x, notes = build_rec_input(req.survey, req.metrics, state["mapping"])
         except ValueError as e:
             raise AppError("E4002", 422, "설문/측정값을 해석할 수 없습니다.", str(e))
+        return await _generate_recommendation(x, notes)
+
+    async def _generate_recommendation(x, notes: list[str], disease: DiseasePrediction | None = None) -> RecommendResponse:
         res = await state["rec_gate"].run(state["rec"].recommend, x, timeout=cfg.rec_timeout_s)
         cleaned, rep = state["filter"].apply(res.parsed)
+        safety_changed = False
+        if disease is not None and disease.label_en != "normal":
+            cleaned, safety_changed = filter_disease_output(cleaned)
         if rep.changed:
             log.info("필터 개입: 문장 제거 %d, 출처 제거 %d, 완화 %d",
                      len(rep.dropped_sentences), rep.removed, rep.softened)
@@ -146,20 +172,54 @@ def create_app(cfg: Settings | None = None) -> FastAPI:
             routine=structure_routine(cleaned),
             reasoning=[s["content"] for s in cleaned["reasoning"]],
             answer=cleaned["answer"], disclaimer=cleaned["disclaimer"],
-            filtered=rep.changed, used_fallback=res.used_fallback, input_notes=notes,
+            filtered=rep.changed or safety_changed, used_fallback=res.used_fallback, input_notes=notes,
             model_version=res.model_version, inference_ms=res.latency_ms)
+
+    async def _disease(data: bytes) -> DiseasePrediction:
+        if "disease" not in state:
+            raise AppError("E3001", 503, "질환 분류 모델이 비활성화돼 있습니다. DISEASE_BACKEND=densenet으로 실행하세요.")
+        t0 = time.perf_counter()
+        try:
+            result = await state["disease_gate"].run(state["disease"].predict, data, timeout=30)
+        except InvalidDiseaseImage as exc:
+            raise AppError("E2002", 422, "이미지를 해석할 수 없습니다. 다시 촬영해 주세요.", str(exc)) from exc
+        pred = DiseasePrediction.model_validate(result)
+        return pred.model_copy(update={"inference_ms": int((time.perf_counter() - t0) * 1000)})
+
+    async def _disease_recommend(req: DiseaseRecommendRequest) -> DiseaseAnalyzeResponse:
+        pred = req.disease.model_copy(update={
+            "uncertain": req.disease.uncertain or req.disease.confidence < cfg.disease_threshold})
+        try:
+            x, notes, status = build_disease_rec_input(
+                req.survey, req.metrics, pred, state["mapping"], state["disease_mapping"],
+                cfg.disease_threshold)
+        except ValueError as exc:
+            raise AppError("E4002", 422, "분류/설문/측정값을 해석할 수 없습니다.", str(exc)) from exc
+        rec = await _generate_recommendation(x, notes, pred) if x is not None else None
+        guidance = disease_guidance(pred) + (notes if rec is None else [])
+        return DiseaseAnalyzeResponse(disease=pred, recommendation=rec,
+                                       recommendation_status=status, guidance=guidance)
+
+    def _parse_survey(survey: str) -> Survey:
+        try:
+            return Survey.model_validate_json(survey)
+        except ValidationError as exc:
+            raise AppError("E4002", 422, "survey JSON 형식이 올바르지 않습니다.", json.loads(exc.json())) from exc
 
     @app.get("/health", response_model=HealthResponse)
     async def health():
-        rec_ok, skin_ok = "rec" in state, "skin" in state
-        return HealthResponse(status="ok" if rec_ok and skin_ok else "degraded", rec_loaded=rec_ok,
-                              skin_loaded=skin_ok, rec_backend=cfg.rec_backend, skin_backend=cfg.skin_backend)
+        rec_ok, skin_ok, disease_ok = "rec" in state, "skin" in state, "disease" in state
+        ok = rec_ok and skin_ok and (cfg.disease_backend == "disabled" or disease_ok)
+        return HealthResponse(status="ok" if ok else "degraded", rec_loaded=rec_ok,
+                              skin_loaded=skin_ok, rec_backend=cfg.rec_backend, skin_backend=cfg.skin_backend,
+                              disease_loaded=disease_ok, disease_backend=cfg.disease_backend)
 
     @app.get("/model-info", response_model=ModelInfo, dependencies=[Depends(auth)])
     async def model_info():
         return ModelInfo(rec_model_version=state["rec"].version, skin_model_version=state["skin"].version,
                          rec_base_model=cfg.rec_base_model if cfg.rec_backend == "sllm" else None,
-                         rec_adapter_dir=cfg.rec_adapter_dir if cfg.rec_backend == "sllm" else None)
+                         rec_adapter_dir=cfg.rec_adapter_dir if cfg.rec_backend == "sllm" else None,
+                         disease_model_version=state["disease"].version if "disease" in state else None)
 
     @app.post("/infer/skin-metrics", response_model=SkinMetricsResponse, dependencies=[Depends(auth)])
     async def skin_metrics(image: UploadFile = File(...), device_type: str = Form("smartphone")):
@@ -169,15 +229,34 @@ def create_app(cfg: Settings | None = None) -> FastAPI:
     async def recommend(req: RecommendRequest):
         return await _recommend(req)
 
+    @app.post("/infer/disease", response_model=DiseasePrediction, dependencies=[Depends(auth)])
+    async def disease(image: UploadFile = File(...)):
+        return await _disease(await _read_image(image))
+
+    @app.post("/infer/disease-recommend", response_model=DiseaseAnalyzeResponse, dependencies=[Depends(auth)])
+    async def disease_recommend(req: DiseaseRecommendRequest):
+        """별도 분류 서버의 원본 JSON을 받는 2단계 연동 경로."""
+        return await _disease_recommend(req)
+
+    @app.post("/infer/disease-analyze", response_model=DiseaseAnalyzeResponse, dependencies=[Depends(auth)])
+    async def disease_analyze(image: UploadFile = File(...), survey: str = Form(...)):
+        sv = _parse_survey(survey)
+        pred = await _disease(await _read_image(image))
+        return await _disease_recommend(DiseaseRecommendRequest(disease=pred, survey=sv))
+
     @app.post("/infer/analyze", response_model=AnalyzeResponse, dependencies=[Depends(auth)])
     async def analyze(image: UploadFile = File(...), survey: str = Form(...),
                       device_type: str = Form("smartphone")):
-        try:
-            sv = Survey.model_validate_json(survey)
-        except ValidationError as e:
-            raise AppError("E4002", 422, "survey JSON 형식이 올바르지 않습니다.", json.loads(e.json()))
-        skin = await _skin(await _read_image(image), device_type)
-        rec = await _recommend(RecommendRequest(metrics=skin.metrics, survey=sv))
+        sv = _parse_survey(survey)
+        data = await _read_image(image)
+        # 실제 이미지 디코딩/분류를 먼저 수행해 손상 이미지를 Qwen에 넘기지 않는다.
+        pred = await _disease(data) if "disease" in state else None
+        skin = await _skin(data, device_type)
+        metrics = None if skin.is_stub else skin.metrics
+        if pred is not None:
+            result = await _disease_recommend(DiseaseRecommendRequest(disease=pred, survey=sv, metrics=metrics))
+            return AnalyzeResponse(skin=skin, **result.model_dump())
+        rec = await _recommend(RecommendRequest(metrics=metrics, survey=sv))
         return AnalyzeResponse(skin=skin, recommendation=rec)
 
     return app

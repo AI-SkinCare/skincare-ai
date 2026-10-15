@@ -1,0 +1,14 @@
+# 데이터 (AI Hub 약관상 재배포 불가)
+data/
+splits/
+
+# 학습 체크포인트 (optimizer 포함 84MB) — 배포용 가중치는 weights/
+checkpoints/
+
+# 로컬 경로가 들어 있는 산출물
+results/*/eval_*/predictions.csv
+results/*/*stdout.log
+
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
