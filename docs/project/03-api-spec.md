@@ -5,6 +5,14 @@
 이 문서가 프론트·백엔드·AI 서버 사이의 계약입니다. 바꿀 때는 [협업 규칙 §5](06-collaboration.md#5-명세-변경-절차)를 따릅니다.
 백엔드 구현 후에는 Swagger(`/api/docs`)가 실제 동작 기준이 되며, 이 문서와 다르면 둘 중 하나를 고치는 PR을 올립니다.
 
+**2026-10-21 AI 연동 변경:** 현재 질환 분류→추천 경로는 [파이프라인 계약](../disease-pipeline.md)과
+[추천 품질 계약](../recommendation-quality.md)을 함께 적용합니다. FastAPI의
+`recommendation_status`는 `generated | uncertain | no_concern | quality_rejected`입니다.
+`quality_rejected`는 HTTP 오류가 아니며 추천 객체는 `null`입니다. Spring은 상태와
+`quality_issues`를 보존하고 Swift는 추천 카드 대신 `guidance`를 표시해야 합니다.
+성분의 `purpose_status`, `purpose_source`와 추천의 `quality_status`,
+`postprocess_version`도 저장·전달합니다. 아래 기존 JSON 예시는 이 추가 필드를 생략한 예시입니다.
+
 ## 1. 공통 규약
 
 | 항목 | 규칙 |
@@ -418,7 +426,7 @@ AI 서버가 돌려준 에러는 백엔드가 이 표의 코드로 바꿔서 전
 }
 ```
 - `skin_type`, `concerns`는 **한글 라벨**로 옵니다. 백엔드가 §6.3·6.4로 코드를 붙여 저장합니다. 표에 없는 값이 오면 E4001로 처리하고 로그를 남깁니다.
-- `ingredients`는 0–5개(`purpose`는 `null` 가능), `routine`은 0개 이상, `routine[].time`은 §6.5. 서버에 성분 사전(`ingredient_dict.json`)이 없으면 `ingredients`가 빈 배열입니다.
+- `ingredients`는 최대 5개(`purpose`는 `null` 가능), `routine[].time`은 §6.5입니다. 현재 SLLM 서버는 성분 사전이 없으면 초기화에 실패합니다. 생성 후 성분·루틴 등이 비면 품질 보류로 처리하며, 단독 `/infer/recommend`에서는 `quality_status: "withheld"`와 빈 목록이 반환됩니다. 질환 통합 경로에서는 `recommendation: null`입니다.
 - 추천 모델은 측정 수치·부위를 직접 보지 않으므로 `reasoning`에 수치가 나오지 않습니다.
 - 에러: `401 E1001`, `422 E4002`, `503 E3003`, `504 E3002`
 

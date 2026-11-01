@@ -11,6 +11,7 @@ outputs/eval/comparison.md 로 저장하고 화면에도 출력한다.
 """
 from __future__ import annotations
 
+import argparse
 import json
 import sys
 from pathlib import Path
@@ -23,6 +24,7 @@ COLUMNS = [
     ("json_ok_first_try", "형식 준수(1차)", "pct"),
     ("fallback_rate", "폴백률", "pct"),
     ("precision_at_3", "precision@3", "pct"),
+    ("macro_concern_precision_at_3", "고민별 평균", "pct"),
     ("recall_all", "recall", "pct"),
     ("answer_similarity_f1", "정답 유사도", "f3"),
     ("filter_intervention_rate", "필터 개입률", "pct"),
@@ -87,6 +89,8 @@ def paired_vs_rule(results: dict[str, dict]) -> str:
     for tag, d in results.items():
         if tag.startswith("rule") or not d.get("items"):
             continue
+        if ref["summary"].get("comparison_key", "legacy") != d["summary"].get("comparison_key", "legacy"):
+            raise ValueError(f"평가 기준이 다른 결과는 비교할 수 없습니다: rule / {tag}")
         pairs = [(ref_by_id[i["id"]], i) for i in d["items"] if "p3_den" in i and i["id"] in ref_by_id]
         if not pairs:
             continue
@@ -106,6 +110,9 @@ def paired_vs_rule(results: dict[str, dict]) -> str:
 
 
 def build_table(summaries: dict[str, dict]) -> str:
+    keys = {s.get("comparison_key", "legacy") for s in summaries.values()}
+    if len(keys) > 1:
+        raise ValueError("데이터·사전·채점·입력 정책이 다른 결과가 섞였습니다. 동일 기준으로 다시 평가하세요.")
     head = "| 모델 | " + " | ".join(label for _, label, _ in COLUMNS) + " |"
     sep = "|---|" + "|".join("---:" for _ in COLUMNS) + "|"
     rows = [f"| {tag} | " + " | ".join(_fmt(s.get(k), kind) for k, _, kind in COLUMNS) + " |"
@@ -114,7 +121,7 @@ def build_table(summaries: dict[str, dict]) -> str:
 
 
 def build_concern_table(summaries: dict[str, dict]) -> str:
-    """고민별 precision@3. 표본 30건 미만은 괄호로 표시(통계적으로 의미 없음)."""
+    """고민별 precision@3. 표본 30건 미만은 불확실성이 커 괄호로 표시."""
     concerns: list[str] = []
     for s in summaries.values():
         for c in s.get("per_concern", {}):
@@ -141,14 +148,18 @@ NOTES = """\
 - 위 전체 표는 모델마다 평가 건수가 다를 수 있으니, 규칙 기반과의 우열은 '같은 문항끼리 비교' 표로 판단합니다. 신뢰구간이 0을 포함하면 차이가 우연일 수 있습니다.
 - '항산화제', '레티노이드' 같은 성분 계열명과 균·생체 물질은 정답·예측 모두에서 제외하고 채점합니다.
 - 정답 유사도는 정답 추론문과의 글자 2-gram F1로, 어휘 수준의 거친 대리 지표입니다.
-- 고민별 표에서 괄호 값은 평가 표본 30건 미만으로 통계적 의미가 없습니다.
+- v3 채점은 추천이 3개 미만이어도 precision@3 분모를 3으로 고정합니다. 이전 결과와 채점 기준이 달라 직접 비교할 수 없습니다.
+- 고민별 표에서 괄호 값은 평가 표본 30건 미만으로 불확실성이 큽니다. '고민별 평균'은 관측된 고민에만 같은 가중치를 준 값입니다.
 """
 
 
 def main() -> None:
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8")
-    results = latest_results()
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--eval-dir", type=Path, default=EVAL_DIR)
+    args = ap.parse_args()
+    results = latest_results(args.eval_dir)
     summaries = {t: d["summary"] for t, d in results.items()}
     if not summaries:
         sys.exit("outputs/eval 에 평가 결과가 없습니다. 먼저 python -m src.llm.evaluate 를 실행하세요.")
@@ -158,10 +169,10 @@ def main() -> None:
         "## 고민별 precision@3", build_concern_table(summaries),
         "## 해석 시 주의", NOTES,
     ])
-    out = EVAL_DIR / "comparison.md"
+    out = args.eval_dir / "comparison.md"
     out.write_text(md, encoding="utf-8")
     print(md)
-    print(f"\n[saved] {out.relative_to(ROOT)}")
+    print(f"\n[saved] {out.resolve()}")
 
 
 if __name__ == "__main__":

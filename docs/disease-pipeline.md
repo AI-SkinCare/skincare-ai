@@ -8,6 +8,9 @@ AI의 현재 API와 백엔드·앱에서 구현할 작업 상태·시간 제한�
 [개정 수행계획서와 부록](project/09-revised-project-plan.md)에 정리했다.
 [실행 가능한 JSON](fixtures/disease-pipeline/README.md)과 [실제 품질 점검의 범위·한계](disease-pipeline-quality-20261015.md)를 함께 확인한다.
 
+2026-10-21 추천 품질 보강: [성분 설명 출처·누락 및 품질 보류 응답](recommendation-quality.md).
+Spring/Swift는 추가된 `quality_rejected` 상태와 nullable `purpose` 처리를 반영해야 한다.
+
 ## 새로 내려받은 팀원의 빠른 연동
 
 AI/ 루트에서 `python -m venv .venv`로 환경을 만든 뒤 진행한다.

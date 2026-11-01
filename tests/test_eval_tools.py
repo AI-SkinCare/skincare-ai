@@ -59,12 +59,12 @@ def test_fallback_answers_are_not_scored_as_model(tmp_path, monkeypatch):
     s = _run_eval(tmp_path, monkeypatch, used_fallback=True)
     assert s["fallback_rate"] == 1.0 and s["scored_n"] == 0
     assert s["precision_at_3"] is None and s["answer_similarity_f1"] is None
-    assert s["precision_at_3_with_fallback"] == 1.0   # 사용자가 받은 결과 기준 수치는 따로 남김
+    assert s["precision_at_3_with_fallback"] == 0.3333   # 빈 추천 슬롯도 분모 3에 포함
 
 
 def test_model_answers_are_scored(tmp_path, monkeypatch):
     s = _run_eval(tmp_path, monkeypatch, used_fallback=False)
-    assert s["scored_n"] == 1 and s["precision_at_3"] == 1.0
+    assert s["scored_n"] == 1 and s["precision_at_3"] == 0.3333
     assert s["answer_similarity_f1"] == 1.0
 
 
@@ -86,6 +86,13 @@ def test_compare_picks_latest_and_orders_rows(tmp_path):
     assert "68.8%" in table and "80.0%" in table
 
 
+def test_compare_cli_saves_table_in_requested_directory(tmp_path, monkeypatch):
+    _write(tmp_path, "rule_20261002-120000.json", {"model": "rule_baseline", "n": 1})
+    monkeypatch.setattr("sys.argv", ["compare", "--eval-dir", str(tmp_path)])
+    compare.main()
+    assert "rule_baseline" in (tmp_path / "comparison.md").read_text(encoding="utf-8")
+
+
 @pytest.mark.parametrize("v,kind,expected", [
     (None, "pct", "-"), (0.6883, "pct", "68.8%"), (42000, "sec", "42.0s"), (12, "sec", "12ms"), (1534, "int", "1,534"),
 ])
@@ -99,8 +106,20 @@ def test_eval_saves_per_item_results(tmp_path, monkeypatch):
     items = json.loads(out.read_text(encoding="utf-8"))["items"]
     assert len(items) == 1
     want = {"id": "1", "concern": CONCERN, "gold": ["알로에신"], "pred": ["알로에신"], "fallback": False,
-            "attempts": 1, "filtered": False, "similarity": 1.0, "p3_hit": 1, "p3_den": 1}
+            "attempts": 1, "filtered": False, "similarity": 1.0, "p3_hit": 1, "p3_den": 3}
     assert {k: items[0][k] for k in want} == want and "latency_ms" in items[0]
+    assert {k: items[0]["cleaned"][k] for k in ("reasoning", "answer")} == json.loads(TARGET)
+    assert "raw_text" in items[0] and items[0]["gold_target"] == json.loads(TARGET)
+
+
+def test_compare_refuses_incompatible_scoring_or_data():
+    a = {"comparison_key": "old", "precision_at_3": 0.8}
+    b = {"comparison_key": "new", "precision_at_3": 0.9}
+    with pytest.raises(ValueError, match="다른 결과"):
+        compare.build_table({"rule": a, "model": b})
+    with pytest.raises(ValueError, match="비교할 수"):
+        compare.paired_vs_rule({"rule": {"summary": a, "items": [{"id": "1", "p3_den": 3}]},
+                               "model": {"summary": b, "items": [{"id": "1", "p3_den": 3}]}})
 
 
 def _items(d, name, model, hits):

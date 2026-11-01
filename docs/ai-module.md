@@ -284,6 +284,8 @@ cloudflared tunnel --url http://localhost:8000
 
 ## 9. 문제 해결
 
+데이터 품질 개선 v3는 [별도 가이드](data-quality-v3.md)를 따릅니다. 기존 v1/v2 점수와 사전·채점 기준이 달라 직접 비교하지 않습니다.
+
 | 증상 | 원인 | 해결 |
 |---|---|---|
 | `no kernel image is available for execution on the device` | CUDA 12.8 미만 torch | §2.2대로 cu128 이상으로 재설치 |

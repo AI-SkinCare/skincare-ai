@@ -131,9 +131,9 @@ def build_messages(x: RecInput) -> list[dict[str, str]]:
 def build_target(chain_of_thought: list[dict[str, Any]], answer: str) -> str:
     """학습 정답 문자열. 들여쓰기 없는 JSON으로 만들어 토큰 수를 줄인다.
 
-    evidence_sources는 의도적으로 제외한다: 원본의 약 75%가
-    'PMID:12345678', 'DOI:10.xxxx/xxxxx' 같은 자리표시자라서, 넣으면
-    모델이 가짜 논문 출처를 지어내도록 학습된다.
+    evidence_sources는 의도적으로 제외한다. 원본 9,000건 중 최소 3,357건
+    (37.3%)에 자리표시자/무관한 PMID가 있다. 나머지도 효능 근거를 확인한
+    것은 아니므로, 모델의 근거 인용 정답으로 사용하지 않는다.
     """
     steps = [
         {"step": i + 1, "title": s.get("title", "").strip(), "content": s.get("content", "").strip()}

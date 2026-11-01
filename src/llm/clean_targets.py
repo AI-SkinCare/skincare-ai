@@ -24,7 +24,7 @@ import shutil
 import sys
 from pathlib import Path
 
-from .ingredients import IngredientExtractor, _key
+from .ingredients import IngredientExtractor, canonical, repair_lexicon, _key
 from .output_filter import FilterReport, OutputFilter
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -39,7 +39,7 @@ MEDICAL_REWRITE = [
 ]
 
 _Q = "['‘’\"“”]"
-_EN = r"[A-Z][A-Za-z0-9\-/,\.]*(?:\s[A-Za-z0-9][A-Za-z0-9\-/,\.]*){0,8}"
+_EN = r"[A-Za-z0-9][A-Za-z0-9\-/,\.]*(?:[ \t][A-Za-z0-9][A-Za-z0-9\-/,\.]*){0,8}"
 P_KO_EN = re.compile(rf"\s?\(\s*({_EN})\s*\)")                               # 알로에신(Aloesin) → 알로에신
 P_EN_KO = re.compile(rf"({_EN})\s?\(([가-힣][가-힣0-9 \-/]{{0,30}})\)")      # SULFUR(유황) → 유황
 P_QUOTED_EN = re.compile(rf"({_Q})({_EN})({_Q})")                           # 'SULFUR' → '유황'
@@ -49,7 +49,7 @@ P_BARE_EN = re.compile(rf"(?<![A-Za-z])({_EN})(?![A-Za-z(])")               # SU
 _S, _E = "\x00", "\x01"
 _JOSA = {"은": ("은", "는"), "는": ("은", "는"), "이": ("이", "가"), "가": ("이", "가"),
          "을": ("을", "를"), "를": ("을", "를"), "과": ("과", "와"), "와": ("과", "와")}
-P_JOSA = re.compile(rf"{_S}([^{_E}]+){_E}({_Q}?)(은|는|이|가|을|를|과|와)(?![가-힣])")
+P_JOSA = re.compile(rf"{_S}([^{_E}]+){_E}([)'‘’\"“”]*)(은|는|이|가|을|를|과|와)(?![가-힣])")
 
 
 def _has_batchim(ch: str) -> bool | None:
@@ -69,22 +69,49 @@ def _fix_josa(m: re.Match) -> str:
 class TargetCleaner:
     def __init__(self, filt: OutputFilter, lexicon: dict[str, str]):
         self.filt = filt
-        self.lex = lexicon
+        self.lex = repair_lexicon(lexicon)
+        keys = sorted((k for k in self.lex if re.search(r"[가-힣]", k)), key=len, reverse=True)
+        ko = "|".join(r"[ \t]*".join(re.escape(c) for c in k) for k in keys)
+        self.paired = re.compile(rf"(?<![가-힣])({ko})\s?\(\s*({_EN})\s*\)", re.I)
 
     def _ko(self, en: str) -> str | None:
-        return self.lex.get(_key(en))
+        name = self.lex.get(_key(en))
+        return canonical([name])[0] if name and canonical([name]) else None
+
+    def conflicting_pairs(self, text: str) -> list[str]:
+        """같은 괄호에 서로 다른 성분이 적혔으면 자동으로 한쪽을 선택하지 않는다."""
+        bad = []
+        for m in self.paired.finditer(text):
+            a, b = self._ko(m[1]), self._ko(m[2])
+            if a and b and a != b:
+                bad.append(m[0])
+        for m in P_EN_KO.finditer(text):
+            a, b = self._ko(m[1]), self._ko(m[2])
+            if a and b and a != b:
+                bad.append(m[0])
+        return bad
 
     def korean_names(self, text: str, st: collections.Counter) -> str:
-        def ko_en(m):          # 한글명 뒤 괄호 속 영문 병기는 지운다 (앞에 이미 한글명이 있음)
-            if self._ko(m.group(1)):
+        def paired(m):
+            a, b = self._ko(m[1]), self._ko(m[2])
+            if a and a == b:
                 st["inci"] += 1
-                return ""
+                return f"{_S}{a}{_E}"
+            return m[0]
+
+        def parenthesized(m):
+            # '(SULFUR)는'처럼 한글 이름 없는 경우도 이름을 보존한다.
+            ko = self._ko(m[1])
+            if ko:
+                st["inci"] += 1
+                return f"({_S}{ko}{_E})"
             return m.group(0)
 
         def en_ko(m):
-            if self._ko(m.group(1)):
+            a, b = self._ko(m[1]), self._ko(m[2])
+            if a and a == b:
                 st["inci"] += 1
-                return f"{_S}{m.group(2)}{_E}"
+                return f"{_S}{a}{_E}"
             return m.group(0)
 
         def quoted(m):
@@ -114,12 +141,20 @@ class TargetCleaner:
                     i += 1
             return " ".join(out)
 
-        text = P_EN_KO.sub(en_ko, text)      # 'SULFUR(유황)'  — 영문(한글)을 먼저: 괄호 속이 한글이라 아래와 안 겹침
-        text = P_KO_EN.sub(ko_en, text)      # '알로에신(Aloesin)'
+        # 충돌된 병기는 검토 대상으로 그대로 보존한다.
+        conflicts = self.conflicting_pairs(text)
+        for i, original in enumerate(conflicts):
+            text = text.replace(original, f"\x02{i}\x03")
+        text = P_EN_KO.sub(en_ko, text)
+        text = self.paired.sub(paired, text)
+        text = P_KO_EN.sub(parenthesized, text)
         text = P_QUOTED_EN.sub(quoted, text)
         text = P_BARE_EN.sub(bare, text)
         text = P_JOSA.sub(_fix_josa, text)
-        return text.replace(_S, "").replace(_E, "")
+        text = text.replace(_S, "").replace(_E, "")
+        for i, original in enumerate(conflicts):
+            text = text.replace(f"\x02{i}\x03", original)
+        return text
 
     def medical(self, text: str, st: collections.Counter) -> str:
         for a, b in MEDICAL_REWRITE:

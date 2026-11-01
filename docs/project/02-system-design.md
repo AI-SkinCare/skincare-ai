@@ -216,7 +216,7 @@ VRAM 사용량은 추천 sLLM(4-bit) 약 6GB + 생성 캐시, 회귀 모델 1GB 
 
 - sLLM 출력이 JSON 형식을 어기면 1회 재생성, 다시 실패하면 규칙 기반 추천을 내보내고 `used_fallback: true`로 표시합니다.
 - 금칙 필터가 문장을 지우거나 바꾸면 `filtered: true`. v2 기준 201건 중 1건(0.5%)에서만 개입했습니다.
-- 응답 범위: `ingredients` 0–5개(`purpose`는 `null` 가능), `routine` 0개 이상, `reasoning` 3개 문단. 백엔드·프론트는 빈 목록을 처리해야 합니다.
+- 응답 범위: `ingredients` 최대 5개(`purpose`는 `null` 가능). 2026-10-21부터 성분·실행 가능한 루틴 등이 남지 않는 추천은 품질 보류로 처리합니다. 질환 통합 경로는 `recommendation_status: quality_rejected`, `recommendation: null`을 반환합니다. 후처리로 추론 문단이 제거될 수 있으므로 문단 수를 고정하지 않습니다. 백엔드·프론트 상태 분기와 추가 필드는 [추천 품질 계약](../recommendation-quality.md)을 따릅니다.
 - 추천 모델은 **측정값 숫자나 부위를 직접 보지 않습니다.** 측정값은 서빙 매핑을 거쳐 피부 타입·고민으로만 전달되므로, 추천 이유에 "이마 수분 61" 같은 수치는 나오지 않습니다.
 
 ## 7. 배포 구성

@@ -1,0 +1,36 @@
+# Same recommendation task plus a small, separately attributed auxiliary stream.
+data:
+  processed_dir: data/processed/sllm_v3
+  seed: 42
+model:
+  base: Qwen/Qwen3-8B
+  max_seq_len: 2048
+  load_in_4bit: true
+  frozen_embeddings_bf16: true
+lora:
+  r: 16
+  alpha: 32
+  dropout: 0.05
+  target_modules: [q_proj, k_proj, v_proj, o_proj, gate_proj, up_proj, down_proj]
+train:
+  output_dir: outputs/rec_sllm_v3_qwen3_mix_bf16
+  auxiliary_file: data/auxiliary_20261008_v2/train_auxiliary.jsonl
+  auxiliary_manifest: data/auxiliary_20261008_v2/manifest.json
+  match_main_steps: true
+  epochs: 2
+  lr: 2.0e-4
+  per_device_batch_size: 1
+  grad_accum: 16
+  warmup_ratio: 0.03
+  lr_scheduler: cosine
+  logging_steps: 10
+  eval_steps: 100
+  save_steps: 10
+  save_total_limit: 3
+smoke:
+  base: Qwen/Qwen3-8B
+  selection: longest
+  max_train_samples: 4
+  max_eval_samples: 2
+  max_steps: 3
+  output_dir: outputs/smoke_v3_qwen3_mix_bf16

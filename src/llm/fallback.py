@@ -37,14 +37,21 @@ class RuleBasedRecommender:
         self.top = {c: canonical(names) for c, names in top.items()}   # 예전 데이터의 '항산화제' 등 제거
 
     def ingredients_for(self, x: RecInput, k: int = 3) -> list[str]:
+        if k <= 0:
+            return []
         out: list[str] = []
-        for c in x.concerns:  # 첫 번째 고민 우선, 중복 제거
-            for name in self.top.get(c, []):
+        # Round-robin keeps the second concern from being starved by the first.
+        choices = [self.top.get(c, []) for c in x.concerns]
+        for index in range(max((len(names) for names in choices), default=0)):
+            for names in choices:
+                if index >= len(names):
+                    continue
+                name = names[index]
                 if name not in out:
                     out.append(name)
-                if len(out) >= k * len(x.concerns):
-                    break
-        return out[: max(k, 3)]
+                if len(out) >= k:
+                    return out
+        return out
 
     def recommend(self, x: RecInput) -> dict:
         ings = self.ingredients_for(x)

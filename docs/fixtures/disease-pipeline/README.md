@@ -5,6 +5,11 @@
 2026-10-15 로컬 HTTP 시험에서 생성한 기록이다. 환자 사진 판정이나 전문가가 확인한 효능 정답이 아니다.
 내용상 한계와 purpose 누락을 그대로 포함한다. [품질 점검 보고서](../../disease-pipeline-quality-20261015.md)를 함께 확인한다.
 
+2026-10-21 추가 상태는 [추천 품질 규약](../../recommendation-quality.md)을 확인한다.
+`quality_rejected.response.example.json`은 새 보류 화면 구현용 **합성 계약 예시**다.
+실제 모델 응답 기록이 아니며, 특정 request가 항상 이 상태를 반환한다는 뜻도 아니다.
+기존 2026-10-15 응답 파일은 당시 기록으로 보존한다.
+
 | 파일 쌍 | 응답 상태 | GPU 생성 |
 |---|---|---|
 | `generated.request.json` / `generated.response.json` | generated | 실제 Qwen 생성 기록 |

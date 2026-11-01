@@ -1,0 +1,32 @@
+# 품질 개선 실험. 데이터 생성: python -m src.llm.prepare_quality_data
+# 기존 v1/v2 데이터·어댑터·평가 결과를 덮어쓰지 않는다.
+data:
+  processed_dir: data/processed/sllm_v3
+  seed: 42
+model:
+  base: Qwen/Qwen2.5-7B-Instruct
+  max_seq_len: 2048
+  load_in_4bit: true
+lora:
+  r: 16
+  alpha: 32
+  dropout: 0.05
+  target_modules: [q_proj, k_proj, v_proj, o_proj, gate_proj, up_proj, down_proj]
+train:
+  output_dir: outputs/rec_sllm_v3
+  epochs: 2
+  lr: 2.0e-4
+  per_device_batch_size: 1
+  grad_accum: 16
+  warmup_ratio: 0.03
+  lr_scheduler: cosine
+  logging_steps: 10
+  eval_steps: 100
+  save_steps: 10
+  save_total_limit: 3
+smoke:
+  base: Qwen/Qwen2.5-0.5B-Instruct
+  max_train_samples: 64
+  max_eval_samples: 8
+  max_steps: 10
+  output_dir: outputs/smoke_v3

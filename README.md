@@ -25,6 +25,10 @@ $env:AI_INTERNAL_TOKEN = "dev-token"
 
 학습·평가 전체(설치 → 점검 → 원본 모델 평가 → QLoRA 학습 → 평가 → 비교표)는 **`run_pipeline.bat` 더블클릭** 한 번으로 실행됩니다. 중단돼도 다시 실행하면 이어갑니다. 자세한 내용은 **[docs/ai-module.md](docs/ai-module.md)** 를 참고하세요.
 
+데이터 품질 개선 v3의 변경 이유, 실제 검사 결과, 팀 공유용 설명과 별도 실험 명령은 **[docs/data-quality-v3.md](docs/data-quality-v3.md)** 에 정리했습니다. v3 데이터는 기존 v2 파이프라인과 별도로 생성합니다.
+
+출처 추가 점검, 희소·복합 고민 검토 자료, 신규 사례 수집 양식과 순차 모델 비교의 진행 상태는 **[docs/data-quality-followup.md](docs/data-quality-followup.md)** 를 참고하세요.
+
 ## API
 
 | 메서드 | 경로 | 설명 |

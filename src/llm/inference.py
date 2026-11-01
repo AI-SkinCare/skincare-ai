@@ -55,6 +55,7 @@ class SLLMRecommender:
         max_new_tokens: int = 2400,
         version: str | None = None,
         top_path: str | Path | None = None,
+        serving_guidance: str | None = None,
     ):
         self.base_model = base_model
         self.adapter_dir = adapter_dir
@@ -62,6 +63,7 @@ class SLLMRecommender:
         self.max_new_tokens = max_new_tokens
         self.version = version or (Path(adapter_dir).parent.name if adapter_dir else "base_" + base_model.split("/")[-1])
         self.fallback = RuleBasedRecommender(top_path)
+        self.serving_guidance = serving_guidance
         self.model = None
         self.tok = None
 
@@ -97,7 +99,12 @@ class SLLMRecommender:
         import torch
 
         assert self.model is not None, "load()를 먼저 호출하세요"
-        prompt = self.tok.apply_chat_template(build_messages(x), tokenize=False, add_generation_prompt=True)
+        # 학습(train_qlora.encode)과 같은 프롬프트여야 한다. Qwen2.5 템플릿은 enable_thinking을 무시한다.
+        messages = build_messages(x)
+        if self.serving_guidance:
+            messages[0]["content"] += "\n\n" + self.serving_guidance
+        prompt = self.tok.apply_chat_template(messages, tokenize=False, add_generation_prompt=True,
+                                              enable_thinking=False)
         enc = self.tok(prompt, return_tensors="pt", add_special_tokens=False)
         # 일부 토크나이저가 내보내는 token_type_ids 등은 generate()가 거부하므로 필요한 것만 전달
         enc = {k: enc[k].to(self.model.device) for k in ("input_ids", "attention_mask") if k in enc}

@@ -1,0 +1,15 @@
+{
+  "disease": {
+    "label": "아토피",
+    "label_en": "atopic",
+    "confidence": 0.9,
+    "uncertain": false,
+    "probabilities": {"건선": 0.02, "아토피": 0.9, "여드름": 0.02, "정상": 0.02, "주사": 0.02, "지루": 0.02},
+    "model_version": "synthetic_contract_example",
+    "inference_ms": 0
+  },
+  "recommendation": null,
+  "recommendation_status": "quality_rejected",
+  "guidance": ["생성 결과가 추천 품질 기준을 충족하지 못해 성분 추천을 보류했습니다."],
+  "quality_issues": ["no_supported_ingredients"]
+}

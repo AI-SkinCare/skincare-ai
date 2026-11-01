@@ -1,0 +1,47 @@
+# v2 데이터 + 베이스 모델만 Qwen3-8B로 교체 (모델 크기·세대 효과를 보려고 나머지는 v2와 동일)
+# 성분 추천 sLLM QLoRA 파인튜닝 설정 (담당: 김우주)
+data:
+  # PowerShell 기준 경로. --raw-root 인자로 덮어쓸 수 있음
+  raw_root: "D:/03.스킨케어 성분-효능 추천 데이터/3.개방데이터/2.데이터(NIA)"
+  processed_dir: "data/processed/sllm_v2"
+  seed: 42
+  val_eval_size: 200          # 빠른 평가용 층화 샘플 크기
+  oversample_min: 150         # 희소 고민 최소 학습 건수
+  oversample_max_factor: 5    # 원본 대비 최대 복제 배수 (과적합 방지)
+  user_note_prob: 0.5         # 원본 질문문을 '추가 요청'으로 넣을 확률
+  condition_code_dropout: 0.3 # 상태 코드를 뺄 확률 (서빙 시 코드 없이 동작해야 하므로)
+
+model:
+  base: "Qwen/Qwen3-8B"   # VRAM 8GB 이하면 Qwen/Qwen2.5-3B-Instruct
+  max_seq_len: 2048                   # 정답 p95 ≈ 2,170자(토큰 p95=1919). 초과 샘플은 잘라 쓰지 않고 제외.
+                                       # (기존 3072: 16GB VRAM에서 batch=1이어도 가장 긴 샘플(토큰 2673개)의
+                                       #  loss 계산용 vocab×seq_len fp32 텐서만으로 ~1.6GB가 튀어 CUDA OOM 발생.
+                                       #  2048로 낮춰 그 꼬리를 학습에서 제외 — 데이터는 8258건 중 극소수만 영향.)
+  load_in_4bit: true
+
+lora:
+  r: 16
+  alpha: 32
+  dropout: 0.05
+  # QLoRA 논문 권장대로 어텐션뿐 아니라 MLP까지 모든 선형층에 적용
+  target_modules: [q_proj, k_proj, v_proj, o_proj, gate_proj, up_proj, down_proj]
+
+train:
+  output_dir: "outputs/rec_sllm_v2_qwen3"
+  epochs: 2
+  lr: 2.0e-4
+  per_device_batch_size: 1
+  grad_accum: 16              # 실효 배치 16
+  warmup_ratio: 0.03
+  lr_scheduler: cosine
+  logging_steps: 10
+  eval_steps: 100
+  save_steps: 10              # 4~8스텝마다 CUDA 오류로 죽는 문제가 있어 자주 저장 (죽어도 최대 10스텝만 손실)
+  save_total_limit: 3
+
+smoke:                        # --smoke: 파이프라인 검증용 (수 분)
+  base: "Qwen/Qwen2.5-0.5B-Instruct"
+  max_train_samples: 64
+  max_eval_samples: 8
+  max_steps: 10
+  output_dir: "outputs/smoke"

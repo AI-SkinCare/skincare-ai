@@ -34,6 +34,8 @@ class Ingredient(BaseModel):
     name: str
     purpose: str | None = None
     priority: int
+    purpose_status: Literal["provided", "unavailable"] = "unavailable"
+    purpose_source: Literal["model", "model_shared", "unavailable"] = "unavailable"
 
 
 class RoutineStep(BaseModel):
@@ -55,6 +57,9 @@ class RecommendResponse(BaseModel):
     input_notes: list[str]
     model_version: str
     inference_ms: int
+    quality_status: Literal["ok", "limited", "withheld"] = "ok"
+    quality_issues: list[str] = Field(default_factory=list)
+    postprocess_version: str = "recommendation_quality_v1"
 
 
 class SkinMetricsResponse(BaseModel):
@@ -109,16 +114,18 @@ class DiseaseRecommendRequest(BaseModel):
 class DiseaseAnalyzeResponse(BaseModel):
     disease: DiseasePrediction
     recommendation: RecommendResponse | None
-    recommendation_status: Literal["generated", "uncertain", "no_concern"]
+    recommendation_status: Literal["generated", "uncertain", "no_concern", "quality_rejected"]
     guidance: list[str]
+    quality_issues: list[str] = Field(default_factory=list)
 
 
 class AnalyzeResponse(BaseModel):
     skin: SkinMetricsResponse
     recommendation: RecommendResponse | None
     disease: DiseasePrediction | None = None
-    recommendation_status: Literal["generated", "uncertain", "no_concern"] = "generated"
+    recommendation_status: Literal["generated", "uncertain", "no_concern", "quality_rejected"] = "generated"
     guidance: list[str] = Field(default_factory=list)
+    quality_issues: list[str] = Field(default_factory=list)
 
 
 class HealthResponse(BaseModel):

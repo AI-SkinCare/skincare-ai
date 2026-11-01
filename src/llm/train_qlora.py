@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import sys
 import time
 from pathlib import Path
@@ -41,8 +42,15 @@ def read_jsonl(path: Path, limit: int | None = None) -> list[dict]:
 
 
 def encode(row: dict, tok, max_len: int) -> dict | None:
-    x = RecInput.from_dict(row["input"])
-    prompt = tok.apply_chat_template(build_messages(x), tokenize=False, add_generation_prompt=True)
+    if row.get("task_type") in ("label_identity", "dictionary_observation"):
+        from .prepare_auxiliary_data import validate_training_auxiliary
+        validate_training_auxiliary([row])
+        messages = row["messages"]
+    else:
+        messages = build_messages(RecInput.from_dict(row["input"]))
+    # enable_thinking=False: Qwen3는 빈 <think></think>를 프롬프트에 넣어 JSON을 바로 쓰게 한다. Qwen2.5 템플릿은 이 인자를 무시한다.
+    prompt = tok.apply_chat_template(messages, tokenize=False, add_generation_prompt=True,
+                                     enable_thinking=False)
     p_ids = tok(prompt, add_special_tokens=False)["input_ids"]
     t_ids = tok(row["target"], add_special_tokens=False)["input_ids"] + [tok.eos_token_id]
     if len(p_ids) + len(t_ids) > max_len:
@@ -106,12 +114,34 @@ def main(argv=None) -> None:
     proc = ROOT / d["processed_dir"]
     if not (proc / "train.jsonl").exists():
         sys.exit("학습 데이터가 없습니다. 먼저 python -m src.llm.prepare_data 를 실행하세요.")
-    train_rows = read_jsonl(proc / "train.jsonl", n_train)
+    longest_smoke = args.smoke and cfg["smoke"].get("selection") == "longest"
+    train_rows = read_jsonl(proc / "train.jsonl", None if longest_smoke else n_train)
     eval_rows = read_jsonl(proc / "val_eval.jsonl", n_eval)
     max_len = m["max_seq_len"]
     train_ds = [e for e in (encode(r, tok, max_len) for r in train_rows) if e]
     eval_ds = [e for e in (encode(r, tok, max_len) for r in eval_rows) if e]
-    skipped = len(train_rows) - len(train_ds)
+    auxiliary_info = None
+    auxiliary_count = auxiliary_skipped = 0
+    if t.get("auxiliary_file") and not args.smoke:
+        from .prepare_auxiliary_data import validate_training_auxiliary
+        from .prepare_quality_data import digest
+        auxiliary_rows = read_jsonl(ROOT / t["auxiliary_file"])
+        auxiliary_info = json.loads((ROOT / t["auxiliary_manifest"]).read_text(encoding="utf-8"))
+        validate_training_auxiliary(auxiliary_rows)
+        if digest(auxiliary_rows) != auxiliary_info["rows_hash"]:
+            raise ValueError("auxiliary rows changed after generation")
+        if auxiliary_info["recommendation_dataset_id"] != json.loads((proc / "manifest.json").read_text(encoding="utf-8"))["dataset_id"]:
+            raise ValueError("auxiliary recommendation dataset mismatch")
+        if len(auxiliary_rows) > int(len(train_rows) * .1):
+            raise ValueError("auxiliary rows exceed allowed proportion")
+        auxiliary_ds = [e for e in (encode(r, tok, max_len) for r in auxiliary_rows) if e]
+        auxiliary_count, auxiliary_skipped = len(auxiliary_ds), len(auxiliary_rows) - len(auxiliary_ds)
+        train_ds.extend(auxiliary_ds)
+    if not train_ds or not eval_ds:
+        sys.exit("길이 제한 적용 후 train/val_eval 데이터가 비었습니다.")
+    skipped = len(train_rows) - (len(train_ds) - auxiliary_count)
+    if longest_smoke:
+        train_ds = sorted(train_ds, key=lambda e: len(e["input_ids"]), reverse=True)[:n_train]
     lens = sorted(len(e["input_ids"]) for e in train_ds)
     print(f"[data] train {len(train_ds)} (길이 초과 제외 {skipped}) / eval {len(eval_ds)} / "
           f"토큰 길이 p50={lens[len(lens)//2]} p95={lens[int(len(lens)*.95)]} max={lens[-1]}")
@@ -132,16 +162,30 @@ def main(argv=None) -> None:
         )
     elif cuda:
         model.enable_input_require_grads()  # 비양자화 + gradient checkpointing + LoRA 조합에 필요
+    memory_policy = None
+    if m.get("frozen_embeddings_bf16"):
+        if not use_4bit or not bf16:
+            raise ValueError("compact frozen embeddings require BF16-capable CUDA 4-bit training")
+        from .memory import compact_frozen_embeddings
+        memory_policy = compact_frozen_embeddings(model)
+        torch.cuda.empty_cache()
+        print(f"[memory] {memory_policy}")
     model = get_peft_model(model, LoraConfig(
         r=lcfg["r"], lora_alpha=lcfg["alpha"], lora_dropout=lcfg["dropout"],
         target_modules=lcfg["target_modules"], bias="none", task_type="CAUSAL_LM",
     ))
     model.print_trainable_parameters()
 
+    epochs = args.epochs or t["epochs"]
+    max_steps = cfg["smoke"]["max_steps"] if args.smoke else -1
+    if t.get("match_main_steps") and not args.smoke:
+        # Hold the optimizer-update budget constant in the auxiliary ablation.
+        max_steps = math.ceil(math.ceil((len(train_ds) - auxiliary_count) / t["grad_accum"]) * epochs)
+
     targs = TrainingArguments(
         output_dir=str(out_dir),
-        num_train_epochs=args.epochs or t["epochs"],
-        max_steps=cfg["smoke"]["max_steps"] if args.smoke else -1,
+        num_train_epochs=epochs,
+        max_steps=max_steps,
         per_device_train_batch_size=t["per_device_batch_size"],
         per_device_eval_batch_size=t["per_device_batch_size"],
         gradient_accumulation_steps=1 if args.smoke else t["grad_accum"],
@@ -178,6 +222,16 @@ def main(argv=None) -> None:
         "train_samples": len(train_ds), "skipped_too_long": skipped, "max_seq_len": max_len,
         "eval_loss": metrics.get("eval_loss"), "train_minutes": round((time.time() - t0) / 60, 1),
         "lora": lcfg, "4bit": use_4bit,
+        "dataset_manifest": json.loads((proc / "manifest.json").read_text(encoding="utf-8"))
+        if (proc / "manifest.json").exists() else None,
+        "development_split": "val_eval", "eval_skipped_too_long": len(eval_rows) - len(eval_ds),
+        "auxiliary_manifest": auxiliary_info, "auxiliary_samples": auxiliary_count,
+        "auxiliary_skipped_too_long": auxiliary_skipped,
+        "requested_epochs": epochs, "configured_max_steps": max_steps,
+        "completed_optimizer_steps": trainer.state.global_step,
+        "memory_policy": memory_policy,
+        "peak_torch_allocated_mib": round(torch.cuda.max_memory_allocated()/1024**2,1) if cuda else None,
+        "peak_torch_reserved_mib": round(torch.cuda.max_memory_reserved()/1024**2,1) if cuda else None,
     }
     (out_dir / "train_info.json").write_text(json.dumps(info, ensure_ascii=False, indent=1), encoding="utf-8")
     print(f"[done] 어댑터 저장: {adapter_dir}\n{json.dumps(info, ensure_ascii=False, indent=1)}")

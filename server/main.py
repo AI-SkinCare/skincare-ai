@@ -27,8 +27,9 @@ from src.llm.output_filter import OutputFilter
 from .adapters import build_rec_input, load_mapping
 from .config import Settings, settings as default_settings
 from .disease_classifier import DenseNetDiseaseClassifier, InvalidDiseaseImage
-from .disease_pipeline import build_disease_rec_input, disease_guidance, filter_disease_output, load_disease_mapping
-from .postprocess import structure_ingredients, structure_routine
+from .disease_pipeline import build_disease_rec_input, disease_guidance, load_disease_mapping
+from .recommendation_quality import SERVING_GUIDANCE
+from .recommendation_response import prepare_recommendation
 from .schemas import (AnalyzeResponse, DiseaseAnalyzeResponse, DiseasePrediction, DiseaseRecommendRequest,
                       HealthResponse, ModelInfo, RecommendRequest, RecommendResponse, SkinMetricsResponse, Survey)
 from .skin_regressor import load_skin_regressor
@@ -81,10 +82,13 @@ def create_app(cfg: Settings | None = None) -> FastAPI:
         state["extractor"] = IngredientExtractor.load(dict_path) if dict_path.exists() else None
         top = cfg.processed_dir / "concern_top_ingredients.json"
         if cfg.rec_backend == "sllm":
+            if state["extractor"] is None:
+                raise ValueError("ingredient_dict.json이 없어 성분 추천을 구성할 수 없습니다. PROCESSED_DIR을 확인하세요.")
             log.info("sLLM 로드 중: %s + %s", cfg.rec_base_model, cfg.rec_adapter_dir)
             state["rec"] = await run_in_threadpool(
                 lambda: SLLMRecommender(cfg.rec_base_model, cfg.rec_adapter_dir,
-                                        max_new_tokens=cfg.rec_max_new_tokens, top_path=top).load())
+                                        max_new_tokens=cfg.rec_max_new_tokens, top_path=top,
+                                        serving_guidance=SERVING_GUIDANCE).load())
         elif cfg.rec_backend == "mock":
             state["rec"] = MockRecommender(top)
             if state["extractor"] is None:
@@ -94,7 +98,7 @@ def create_app(cfg: Settings | None = None) -> FastAPI:
         else:
             raise ValueError(f"알 수 없는 REC_BACKEND: {cfg.rec_backend}")
         if state["extractor"] is None:
-            log.warning("ingredient_dict.json 없음 → 성분 구조화 비활성 (prepare_data 실행 필요)")
+            raise ValueError("ingredient_dict.json이 없어 성분 추천을 구성할 수 없습니다. PROCESSED_DIR을 확인하세요.")
         state["skin"] = load_skin_regressor(cfg.skin_backend)
         state["filter"] = OutputFilter.from_yaml()
         state["mapping"] = load_mapping()
@@ -159,21 +163,12 @@ def create_app(cfg: Settings | None = None) -> FastAPI:
 
     async def _generate_recommendation(x, notes: list[str], disease: DiseasePrediction | None = None) -> RecommendResponse:
         res = await state["rec_gate"].run(state["rec"].recommend, x, timeout=cfg.rec_timeout_s)
-        cleaned, rep = state["filter"].apply(res.parsed)
-        safety_changed = False
-        if disease is not None and disease.label_en != "normal":
-            cleaned, safety_changed = filter_disease_output(cleaned)
-        if rep.changed:
-            log.info("필터 개입: 문장 제거 %d, 출처 제거 %d, 완화 %d",
-                     len(rep.dropped_sentences), rep.removed, rep.softened)
-        return RecommendResponse(
-            skin_type=x.skin_type, concerns=x.concerns,
-            ingredients=structure_ingredients(cleaned, state["extractor"]),
-            routine=structure_routine(cleaned),
-            reasoning=[s["content"] for s in cleaned["reasoning"]],
-            answer=cleaned["answer"], disclaimer=cleaned["disclaimer"],
-            filtered=rep.changed or safety_changed, used_fallback=res.used_fallback, input_notes=notes,
-            model_version=res.model_version, inference_ms=res.latency_ms)
+        response, findings = prepare_recommendation(
+            res, x, notes, state["extractor"], state["filter"], disease)
+        if findings:
+            # Do not log user notes or generated health text in normal server logs.
+            log.info("추천 품질 검사: %s", response.quality_issues)
+        return response
 
     async def _disease(data: bytes) -> DiseasePrediction:
         if "disease" not in state:
@@ -197,8 +192,13 @@ def create_app(cfg: Settings | None = None) -> FastAPI:
             raise AppError("E4002", 422, "분류/설문/측정값을 해석할 수 없습니다.", str(exc)) from exc
         rec = await _generate_recommendation(x, notes, pred) if x is not None else None
         guidance = disease_guidance(pred) + (notes if rec is None else [])
+        quality_issues = rec.quality_issues if rec is not None else []
+        if rec is not None and rec.quality_status == "withheld":
+            status, rec = "quality_rejected", None
+            guidance.append("생성 결과가 추천 품질 기준을 충족하지 못해 성분 추천을 보류했습니다.")
         return DiseaseAnalyzeResponse(disease=pred, recommendation=rec,
-                                       recommendation_status=status, guidance=guidance)
+                                       recommendation_status=status, guidance=guidance,
+                                       quality_issues=quality_issues)
 
     def _parse_survey(survey: str) -> Survey:
         try:
@@ -257,7 +257,11 @@ def create_app(cfg: Settings | None = None) -> FastAPI:
             result = await _disease_recommend(DiseaseRecommendRequest(disease=pred, survey=sv, metrics=metrics))
             return AnalyzeResponse(skin=skin, **result.model_dump())
         rec = await _recommend(RecommendRequest(metrics=metrics, survey=sv))
-        return AnalyzeResponse(skin=skin, recommendation=rec)
+        if rec.quality_status == "withheld":
+            return AnalyzeResponse(skin=skin, recommendation=None, recommendation_status="quality_rejected",
+                                   quality_issues=rec.quality_issues,
+                                   guidance=["생성 결과가 추천 품질 기준을 충족하지 못해 성분 추천을 보류했습니다."])
+        return AnalyzeResponse(skin=skin, recommendation=rec, quality_issues=rec.quality_issues)
 
     return app
 

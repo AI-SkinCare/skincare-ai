@@ -28,6 +28,7 @@ from __future__ import annotations
 
 import argparse
 import collections
+import hashlib
 import json
 import math
 import random
@@ -39,12 +40,24 @@ from pathlib import Path
 
 import yaml
 
-from .ingredients import IngredientExtractor, canonical
+from .ingredients import INGREDIENT_SCHEMA_VERSION, IngredientExtractor
+from .prepare_quality_data import digest, target_text
 from .inference import MockRecommender, SLLMRecommender
 from .output_filter import OutputFilter
 from .schema import RecInput
 
 ROOT = Path(__file__).resolve().parents[2]
+SCORING_VERSION = "fixed_top3_v3"
+
+
+def comparison_key(proc: Path, ext: IngredientExtractor, split: str, with_codes: bool) -> str:
+    """표본 수가 달라도 같은 평가 모집단·사전·입력 정책에서만 짝지어 비교."""
+    return digest({"corpus": hashlib.sha256((proc / f"{split}.jsonl").read_bytes()).hexdigest(),
+                   "lexicon": ext.lexicon, "ingredient_schema": INGREDIENT_SCHEMA_VERSION,
+                   "scoring": SCORING_VERSION, "split": split, "with_codes": with_codes,
+                   "prompt": hashlib.sha256(Path(__file__).with_name("schema.py").read_bytes()).hexdigest(),
+                   "filter": hashlib.sha256((ROOT / "configs/filter_rules.yaml").read_bytes()).hexdigest()
+                   if (ROOT / "configs/filter_rules.yaml").exists() else None})
 
 
 def _bigrams(s: str) -> collections.Counter:
@@ -86,19 +99,33 @@ def main(argv=None) -> None:
     ap.add_argument("--n", type=int, default=None,
                     help="평가 샘플 수 (기본: val_eval 전체 201건). 고정 시드 무작위 표본이므로 비교할 모델끼리 같은 값을 쓰세요")
     ap.add_argument("--with-codes", action="store_true", help="상태 코드를 입력에 포함 (기본은 서빙 정책대로 제외)")
+    ap.add_argument("--split", choices=("val_eval", "test", "val"), default="val_eval")
+    ap.add_argument("--output-dir", type=Path, help="평가 결과 저장 경로 (v3은 기존 결과와 별도 저장)")
     ap.add_argument("--max-new-tokens", type=int, default=2400,
                     help="정답 길이 p95≈2,170자 → 토큰으로 1,450~2,000. 1800이면 긴 답이 JSON 중간에서 잘린다")
     args = ap.parse_args(argv)
 
     cfg = yaml.safe_load(Path(args.config).read_text(encoding="utf-8"))
     proc = ROOT / cfg["data"]["processed_dir"]
-    rows = [json.loads(l) for l in open(proc / "val_eval.jsonl", encoding="utf-8") if l.strip()]
+    rows = [json.loads(l) for l in open(proc / f"{args.split}.jsonl", encoding="utf-8") if l.strip()]
+    if args.n is not None and args.n <= 0:
+        ap.error("--n must be positive")
+    if not rows:
+        ap.error("평가 split이 비어 있습니다")
     if args.n and args.n < len(rows):
         # val_eval.jsonl은 희소 고민이 앞에 몰려 있고 고민별로 묶여 있어 앞에서 자르면 분포가 왜곡된다.
         # 고정 시드 표본 → 어떤 모델을 평가해도 같은 --n이면 같은 문항 (공정 비교)
         rows = random.Random(0).sample(rows, args.n)
     ext = IngredientExtractor.load(proc / "ingredient_dict.json")
     filt = OutputFilter.from_yaml()
+    manifest_path = proc / "manifest.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8")) if manifest_path.exists() else {}
+    if manifest:
+        # --n 적용 전 전체 모집단 파일을 검증한다.
+        all_rows = [json.loads(l) for l in (proc / f"{args.split}.jsonl").read_text(encoding="utf-8").splitlines() if l.strip()]
+        if digest(all_rows) != manifest["split_hashes"].get(args.split) or digest(ext.lexicon) != manifest["lexicon_hash"]:
+            raise ValueError("dataset changed after generation; use a new version")
+    evaluation_key = comparison_key(proc, ext, args.split, args.with_codes)
 
     if args.mock:
         model, tag = MockRecommender(proc / "concern_top_ingredients.json"), "rule_baseline"
@@ -109,7 +136,8 @@ def main(argv=None) -> None:
             info = Path(adapter).parent / "train_info.json"
             base = json.loads(info.read_text(encoding="utf-8"))["base_model"] if info.exists() else cfg["model"]["base"]
         print(f"[load] base={base} adapter={adapter}")
-        model = SLLMRecommender(base, adapter, cfg["model"]["load_in_4bit"], args.max_new_tokens).load()
+        model = SLLMRecommender(base, adapter, cfg["model"]["load_in_4bit"], args.max_new_tokens,
+                                top_path=proc / "concern_top_ingredients.json").load()
         tag = Path(adapter).parent.name if adapter else "base_" + base.split("/")[-1]
 
     per = collections.defaultdict(lambda: collections.Counter())
@@ -122,18 +150,23 @@ def main(argv=None) -> None:
         step2 = next((s["content"] for s in cleaned["reasoning"] if "성분" in s["title"]),
                      cleaned["reasoning"][min(1, len(cleaned["reasoning"]) - 1)]["content"])
         pred = ext.extract(step2 + "\n" + cleaned["answer"])
-        gold = set(canonical(r["gold_ingredients"]))   # 저장된 정답에도 같은 정규화 (예전 데이터 호환)
+        gold = set(ext.extract(target_text(json.loads(r["target"]))))
+        if manifest and gold != set(r["gold_ingredients"]):
+            raise ValueError(f"stale gold labels: {r['id']}; rebuild dataset")
         c = per[r["target_concern"]]
         item = {"id": r["id"], "concern": r["target_concern"], "gold": sorted(gold), "pred": pred,
                 "fallback": res.used_fallback, "attempts": res.attempts, "filtered": rep.changed,
-                "latency_ms": res.latency_ms}
+                "latency_ms": res.latency_ms, "raw_text": res.raw_text, "parsed": res.parsed,
+                "cleaned": cleaned, "gold_target": json.loads(r["target"]),
+                "multi_concern": len(x.concerns) > 1}
         c["n"] += 1
         c["json_ok_first"] += int(res.attempts == 1 and not res.used_fallback)
         c["fallback"] += int(res.used_fallback)
+        c["empty_gold"] += int(not gold)
         # 폴백 포함 수치 (사용자가 실제로 받는 결과)
         if gold:
             top3 = pred[:3]
-            hit3, den3 = len(set(top3) & gold), (len(top3) if top3 else 3)
+            hit3, den3 = len(set(top3) & gold), 3  # 1개만 추천해도 분모는 항상 3
             hit_all, den_all = len(set(pred) & gold), len(gold)
             c["sys_p3_hit"] += hit3
             c["sys_p3_den"] += den3
@@ -144,6 +177,7 @@ def main(argv=None) -> None:
             sims.append(bigram_f1(full_text(cleaned), full_text(json.loads(r["target"]))))
             item["similarity"] = round(sims[-1], 4)
             if gold:
+                c["scored"] += 1
                 item["p3_hit"], item["p3_den"] = hit3, den3
                 c["p3_hit"] += hit3
                 c["p3_den"] += den3
@@ -165,8 +199,15 @@ def main(argv=None) -> None:
         "model": tag, "n": tot["n"], "with_condition_codes": args.with_codes,
         "json_ok_first_try": rate(tot["json_ok_first"], tot["n"]),
         "fallback_rate": rate(tot["fallback"], tot["n"]),
-        "scored_n": tot["gen"],   # 아래 모델 단독 지표의 분모 (폴백 제외 건수)
+        "generated_n": tot["gen"], "scored_n": tot["scored"], "empty_gold_n": tot["empty_gold"],
+        "scoring_version": SCORING_VERSION, "ingredient_schema": INGREDIENT_SCHEMA_VERSION,
+        "comparison_key": evaluation_key, "dataset_id": manifest.get("dataset_id", "legacy_relabelled"),
+        "split": args.split, "lexicon_hash": digest(ext.lexicon),
+        "test_status": manifest.get("test_status"),
+        "evaluated_ids_hash": digest(sorted(r["id"] for r in rows)),
         "precision_at_3": rate(tot["p3_hit"], tot["p3_den"]),
+        "macro_concern_precision_at_3": round(statistics.mean(v["p3_hit"] / v["p3_den"] for v in per.values() if v["p3_den"]), 4)
+        if any(v["p3_den"] for v in per.values()) else None,
         "recall_all": rate(tot["rec_hit"], tot["rec_den"]),
         "answer_similarity_f1": round(statistics.mean(sims), 4) if sims else None,
         "filter_intervention_rate": rate(tot["filtered"], tot["gen"]),
@@ -176,22 +217,22 @@ def main(argv=None) -> None:
         "output_tokens_mean": int(statistics.mean(toks)) if toks and any(toks) else None,
         "wall_minutes": round((time.time() - t0) / 60, 1),
         "per_concern": {
-            k: {"n": v["n"], "scored_n": v["gen"], "precision_at_3": rate(v["p3_hit"], v["p3_den"]),
-                "reliable": v["gen"] >= 30}
+            k: {"n": v["n"], "scored_n": v["scored"], "precision_at_3": rate(v["p3_hit"], v["p3_den"]),
+                "reliable": v["scored"] >= 30}
             for k, v in sorted(per.items(), key=lambda kv: -kv[1]["n"])
         },
     }
     if tot["n"] and tot["fallback"] / tot["n"] > 0.1:
         print(f"[경고] 폴백 {tot['fallback']}/{tot['n']}건 — 형식 준수 실패가 많습니다. "
               f"모델 단독 지표는 {tot['gen']}건 기준이며, 폴백 건은 점수에서 제외했습니다.")
-    out = ROOT / "outputs" / "eval"
+    out = args.output_dir or (ROOT / "outputs" / "eval" / proc.name / args.split if manifest else ROOT / "outputs" / "eval")
     out.mkdir(parents=True, exist_ok=True)
-    stamp = time.strftime("%Y%m%d-%H%M")
+    stamp = time.strftime("%Y%m%d-%H%M%S")
     # items: 문항별 결과 → compare.py가 모델끼리 '같은 문항'만 골라 짝지어 비교한다
     (out / f"{tag}_{stamp}.json").write_text(json.dumps({"summary": summary, "samples": samples, "items": items},
                                                         ensure_ascii=False, indent=1), encoding="utf-8")
     print(json.dumps(summary, ensure_ascii=False, indent=1))
-    print(f"[saved] outputs/eval/{tag}_{stamp}.json")
+    print(f"[saved] {out / f'{tag}_{stamp}.json'}")
 
 
 if __name__ == "__main__":

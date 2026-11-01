@@ -1,6 +1,7 @@
 # 학습/sLLM 서빙용. torch는 CUDA 버전에 맞춰 먼저 설치 (docs/ai-module.md 참고)
 -r requirements.txt
-transformers>=4.46,<5
+transformers>=4.51,<5  # Qwen3 architecture support
 peft>=0.13
 accelerate>=1.0
 bitsandbytes>=0.45   # Windows 공식 휠 지원
+psutil>=7,<8        # guarded Windows venv child-tree termination
