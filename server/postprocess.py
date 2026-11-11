@@ -140,7 +140,7 @@ def _finish_explanation(body: str) -> str | None:
         return None
     # "A or B이 포함된 제품을 사용하여 ..." describes the product/action,
     # not B's individual benefit. It must not replace an explicit shared claim.
-    if re.match(r"^(?:포함|함유|배합)된\s*(?:제품|화장품|토너|세럼|에센스|크림|로션)"
+    if re.match(r"^(?:포함|함유|배합)된\s*(?:제품|화장품|토너|세럼|에센스|크림|로션|보습제)"
                 r"(?=\s|[은는이가을를의에]|[.!?]|$)", body):
         return None
     # An open parenthesis or a list tail is not an attributable explanation.
@@ -178,6 +178,10 @@ def _sentence_evidence(sentence: str, spans: _AliasSpans) -> tuple[list[str], di
             subject = _SUBJECT.match(tail)
         if subject:
             body = tail[subject.end():]
+        elif re.match(r'함유\s*(?:보습\s*제형|보습제|크림|완제품\s*선크림)(?:은|는|이|가)', tail):
+            # Preserve the formulation qualifier. This is not a claim that an
+            # isolated ingredient independently produced the stated effect.
+            body = tail
         elif tail.startswith((":", "：")):
             body = tail[1:].lstrip()
         elif re.match(r"(?:helps?|supports?|provides?|reduces?|soothes?|hydrates?|"
@@ -188,7 +192,8 @@ def _sentence_evidence(sentence: str, spans: _AliasSpans) -> tuple[list[str], di
         purpose = _finish_explanation(body)
         if purpose:
             for name in names:
-                candidates[name] = (purpose, "model_shared" if shared else "model")
+                source = 'model_formulation' if body.startswith('함유') else ('model_shared' if shared else 'model')
+                candidates[name] = (purpose, source)
     return [m.name for m in mentions], candidates, excluded
 
 
@@ -281,6 +286,7 @@ def _time_of(s: str) -> str:
 
 # "효과적인 모공 관리를 위해서는 꾸준하고 체계적인 루틴이 필요합니다." 같은 도입·총평 문장은 행동 단계가 아니다
 _ACTION = re.compile(
+    r"(?:사용|선택|보습|도포|세안|중단)한다(?=[.!?]|\s|$)|"
     r"바르|발라|도포하|도포해|도포합|사용하|사용해|사용합|세안하|세안해|세안합|"
     r"클렌징하|클렌징해|선택하|선택해|선택합|헹구|씻|두드|흡수시|마사지하|"
     r"덧발|보습하|보습해|섭취하|섭취해|수면을\s*취|마시|"
