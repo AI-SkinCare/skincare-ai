@@ -10,8 +10,9 @@ import json
 import re
 
 from .product_conditions import kind,LABELS
+from .disease_care import care_text
 
-VERSION='grounded_contract_v4'
+VERSION='grounded_contract_v5'
 NEUTRAL='사진 분류와 설문만으로 개인의 상태를 확정할 수 없습니다.'
 _FENCE=re.compile(r'\A```(?:json)?\s*\n?(.*?)\n?```\s*\Z',re.S|re.I)
 _HAN=re.compile(r'[\u3400-\u4dbf\u4e00-\u9fff]')
@@ -69,23 +70,26 @@ def select_cards(bundle,response,required_products=()):
     return chosen
 
 
-def source_payload(cards):
+def source_payload(cards,bundle=None):
     """Exact existing card text, explicitly distinguishable from model output."""
+    routine='\n'.join(LABELS[kind(c)]+'('+c['ingredient']+'): '+' '.join(c['conditions']) for c in cards)
+    care=care_text(bundle or {},cards)
+    if care:routine+='\n'+care
     return {'reasoning':[
         dict(step=1,title='문제 분석 및 원인 파악',content=NEUTRAL),
         dict(step=2,title='성분 선택 및 근거 제시',content='\n'.join(c['effect']+' ['+c['id']+']' for c in cards)),
-        dict(step=3,title='사용법 및 관리방안',content='\n'.join(LABELS[kind(c)]+'('+c['ingredient']+'): '+' '.join(c['conditions']) for c in cards))],
+        dict(step=3,title='사용법 및 관리방안',content=routine)],
         'answer':', '.join(c['ingredient']+' 함유 '+('완제품 선크림' if kind(c)=='sunscreen' else '보습 제형') for c in cards)}
 
 
-def recovery_prompt(cards):
+def recovery_prompt(cards,bundle=None):
     """A source-derived JSON blueprint to transcribe, never a returned response.
 
     Rare proper names use ordinary JSON Unicode escapes in the prompt. JSON
     decoding yields the exact original card spelling; no word is patched later.
     The model may still fail, in which case normal validation withholds it.
     """
-    payload=source_payload(cards)
+    payload=source_payload(cards,bundle)
     blueprint=json.dumps(payload,ensure_ascii=False,separators=(',',':'))
     # Escapes are a JSON encoding of the same canonical source string, not an
     # ingredient alias, a new fact or post-generation spelling replacement.

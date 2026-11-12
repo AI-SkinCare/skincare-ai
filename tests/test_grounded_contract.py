@@ -79,6 +79,8 @@ def test_invalid_source_draft_can_recover_from_complete_source_spec():
     p['reasoning'][2]['content']='\n'.join(c['ingredient']+': '+' '.join(c['conditions']) for c in cards)
     # Product labels matter as well as names.
     p['reasoning'][2]['content']='\n'.join(('선크림' if c['id'].endswith('_SUN') else '보습제')+'('+c['ingredient']+'): '+' '.join(c['conditions']) for c in cards)
+    from server.disease_care import care_text
+    p['reasoning'][2]['content']+='\n'+care_text(row['bundle'],cards)
     p['answer']='글리세린 함유 보습제와 징크옥사이드 함유 완제품 선크림을 선택합니다.'
     good=result(p);calls=[]
     class Model:

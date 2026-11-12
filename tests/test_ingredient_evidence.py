@@ -27,7 +27,7 @@ def candidate(text='글리세린은 수분 유지와 건조함 관리를 돕는 
     return {'reasoning':[
         {'step':1,'title':'문제 분석','content':'사진 분류와 설문만으로 개인의 상태를 확정할 수 없습니다.'},
         {'step':2,'title':'성분 선택 및 근거 제시','content':text},
-        {'step':3,'title':'사용법 및 관리방안','content':routine or '매일 무향 글리세린 보습제를 제품 표시대로 사용하고 자극이 생기면 중단하세요.'}],
+        {'step':3,'title':'사용법 및 관리방안','content':routine or '매일 무향 글리세린 보습제를 제품 표시대로 사용하고 자극이 생기면 중단하세요. 보습제는 세정 뒤 수분이 남아 있을 때 사용한다.'}],
         'answer':'글리세린 함유 보습제로 기본 보습 관리를 하세요.'}
 
 
@@ -226,7 +226,7 @@ def test_formulation_purpose_and_declarative_usage_keep_their_scope():
     from server.grounded_generation import assess
     s=load_evidence();x=input_value();b=retrieve_evidence(s,x,prediction())
     p=candidate('세라마이드 함유 보습 제형은 수분 유지와 피부 장벽 보조 관리의 후보가 될 수 있다. [E_CER_MOIST]',
-                '무향의 완제품 보습제를 제품 표시대로 사용한다. 자극이 생기면 사용을 중단한다.')
+                '무향의 완제품 보습제를 제품 표시대로 사용한다. 자극이 생기면 사용을 중단한다. 보습제는 세정 뒤 수분이 남아 있을 때 사용한다.')
     p['answer']='세라마이드 함유 보습제를 표시대로 사용한다.'
     r,_,review=assess(RecResult(p,'fixture',False,1,json.dumps(p,ensure_ascii=False),1,1),x,[],extend_extractor(IngredientExtractor({}),s),OutputFilter.from_yaml(),prediction(),b)
     assert r.ingredients[0].purpose_source=='model_formulation'

@@ -9,7 +9,9 @@ import json
 import re
 from copy import deepcopy
 
-VERSION='product_conditions_v3'
+from .disease_care import care_text, review_care
+
+VERSION='product_conditions_v4'
 LABELS={'moisturizer':'보습제','sunscreen':'선크림'}
 GUIDANCE="""Minimally correct the draft below, returning the same complete three-step JSON format. Keep its neutral step 1, all valid ingredient effect sentences and their [E_...] ids, and its selected ingredients. Correct step 3 so each selected product has its own fragrance-free instruction. Use separate Korean lines headed 보습제: and 선크림:. A fragrance-free sunscreen clause cannot cover moisturizer. Copy the applicable reviewed product conditions; do not invent efficacy, concentration, timing or frequency. If a requested product kind is missing, add an applicable card of that kind (replace a redundant same-kind selection if needed to keep at most two), copy its full effect and id into step 2, and include its usage line. Keep answer consistent with step 2; never mention unselected ingredients. Remove internal placeholder tags by generating clean Korean text. Do not output JSON field names as advice. Without supplied evidence cards, do not invent ingredient facts or ids."""
 
@@ -54,6 +56,7 @@ def prompt_usage(bundle,selected_names=None,required_products=()):
     missing=set(required_products)-existing
     cards=[c for c in bundle['claims'] if not selected or c['ingredient'] in selected or kind(c) in missing]
     lines=[c['ingredient']+' ['+c['id']+']의 검토된 사용 문장 — '+LABELS[kind(c)]+': '+' '.join(c['conditions']) for c in cards]
+    if care_text(bundle,cards):lines.append(care_text(bundle,cards))
     return '\n선택 제품별로 적용할 기존 근거의 사용 문장:\n'+'\n'.join(lines)
 
 
@@ -67,7 +70,10 @@ def routine_lines(bundle,selected_names,required_products=()):
     lines=[]
     for product in ('moisturizer','sunscreen'):
         conditions=list(dict.fromkeys(t for c in cards if kind(c)==product for t in c['conditions']))
+        if product=='moisturizer' and care_text(bundle,cards):conditions.append(care_text(bundle,cards))
         if conditions:lines.append(LABELS[product]+': '+' '.join(conditions))
+    if not any(kind(c)=='moisturizer' for c in cards) and care_text(bundle,cards):
+        lines.append(care_text(bundle,cards))
     return '\n'.join(lines)
 
 
@@ -120,7 +126,9 @@ def review_usage(parsed,response,bundle,*,required_products=()):
     for p in sorted(stop_needed-stop_covered):issues.append('product_irritation_stop_missing_'+p)
     text='\n'.join([s.get('content','') for s in steps]+[parsed.get('answer','')])
     advisories=['product_internal_placeholder_removed'] if _INTERNAL.search(text) else []
-    return {'version':VERSION,'issues':list(dict.fromkeys(issues)),
+    care=review_care(parsed,response,bundle)
+    return {'version':VERSION,'issues':list(dict.fromkeys(issues+care['issues'])),
+            'disease_care':care,
             'advisories':advisories,
             'selected_products':sorted(selected),'required_products':sorted(required),
             'fragrance_covered':sorted(covered),'fragrance_needed':sorted(needed),

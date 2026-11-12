@@ -56,9 +56,9 @@ def test_all_seven_previous_passes_still_pass_the_shared_guard():
         if r['arm']!='with' or r['case_id']=='acne_oily':continue
         x=RecInput.from_dict(r['input']);d=DiseasePrediction(**r['prediction'])
         response,_,review=assess(RecResult(**r['result']),x,r['common_guard_response']['input_notes'],ext,OutputFilter.from_yaml(),d,r['bundle'])
-        # Product coverage is a later policy; this regression protects the
-        # original classification/source boundary without grandfathering usage.
-        assert not [i for i in review['issues'] if not i.startswith('product_')],(r['case_id'],review)
+        # Later product/care policies have their own regressions. This test
+        # protects the original classification/source boundary only.
+        assert not [i for i in review['issues'] if not i.startswith(('product_','care_condition_'))],(r['case_id'],review)
         assert response.quality_status=='ok'
         assert [i.model_dump() for i in response.ingredients]==r['common_guard_response']['ingredients']
 

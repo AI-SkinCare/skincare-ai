@@ -1,6 +1,6 @@
 {
-  "version": "ingredient_evidence_20261110_v1",
-  "reviewed_at": "2026-11-10",
+  "version": "ingredient_evidence_20261112_v2",
+  "reviewed_at": "2026-11-12",
   "review_type": "source_reading_by_software_agent_not_clinician_review",
   "scope": "cosmetic_support_only_not_diagnosis_or_prescription",
   "sources": {
@@ -23,16 +23,16 @@
       "summary": "무향 크림·연고, 목욕 후 보습과 새 제품의 사전 시험을 안내한다. 제품·개인별 반응은 다를 수 있다."
     },
     "AAD_PS": {
-      "url": "https://www.aad.org/public/diseases/psoriasis/treatment/medications/non-prescription",
-      "title": "AAD: Non-prescription psoriasis care",
+      "url": "https://www.aad.org/public/diseases/psoriasis/skin-care/baths-showers",
+      "title": "AAD: Baths and showers with psoriasis",
       "kind": "dermatology_society_patient_guidance",
-      "summary": "보습은 건조함 관리의 보조 수단이다. 무향의 두꺼운 크림·연고를 세정 후 사용하는 관리 원칙을 설명한다. 여기서는 치료 성분을 추천하지 않는다."
+      "summary": "세정 뒤 물기를 가볍게 닦고 수분이 남은 피부에 무향 보습제를 사용하도록 안내한다. 특정 성분의 치료 효능이나 개인별 사용 처방을 입증하는 자료가 아니다."
     },
     "AAD_SD": {
       "url": "https://www.aad.org/public/diseases/a-z/seborrheic-dermatitis-self-care",
       "title": "AAD: Seborrheic dermatitis self-care",
       "kind": "dermatology_society_patient_guidance",
-      "summary": "순한 세정 후 무향 보습제와 알코올 없는 제품, 산화아연 또는 이산화티타늄 함유 선크림을 안내한다. 특정 보습 성분의 질환 치료 효능을 입증하는 자료는 아니다."
+      "summary": "순한 세정 후 무향 보습제와 알코올 없는 제품, 산화아연 또는 이산화티타늄 함유 선크림을 안내한다. 알코올 회피는 보습제·선크림 등 피부·모발에 쓰는 제품에 적용된다. 특정 보습 성분의 질환 치료 효능을 입증하는 자료는 아니다."
     },
     "AAD_ROS": {
       "url": "https://www.aad.org/public/diseases/rosacea/triggers/tips",

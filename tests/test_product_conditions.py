@@ -109,6 +109,8 @@ def test_only_failed_product_conditions_trigger_a_recorded_model_repair():
     row=next(r for r in examples() if r['arm']=='v2_with' and r['case_id']=='ps_oily_acne')
     bad=RecResult(**row['result']);p=deepcopy(bad.parsed)
     p['reasoning'][2]['content']='보습제: 무향 완제품을 제품 표시대로 사용하고 자극이 생기면 중단하세요. 선크림: 광범위 SPF30 이상 내수성 표시가 있는 무향 완제품을 선택하고 제품 표시를 따르며 자극이 생기면 중단하세요.'
+    from server.disease_care import care_text
+    p['reasoning'][2]['content']+='\n'+care_text(row['bundle'],row['bundle']['claims'])
     good=replace(bad,parsed=p,raw_text=json.dumps(p,ensure_ascii=False),attempts=1)
     calls=[]
     class Model:
@@ -123,18 +125,23 @@ def test_only_failed_product_conditions_trigger_a_recorded_model_repair():
 
 
 @pytest.mark.skipif(not (OLD/'novel_v1/responses.jsonl').exists(),reason='local prior outputs unavailable')
-def test_valid_existing_generation_keeps_the_exact_frozen_v2_context():
-    from scripts.compare_product_conditions import frozen_v2
+def test_previous_effects_are_preserved_when_new_care_policy_requires_recovery():
+    from server.grounded_contract import source_payload
     row=next(r for r in examples() if r['arm']=='v2_with' and r['case_id']=='ad_adult_basic')
-    result=RecResult(**row['result']);old,_=frozen_v2();contexts=[]
+    result=RecResult(**row['result']);contexts=[]
     class Model:
         def recommend_with_context(self,x,context,**kw):contexts.append(context);return result
     ext=extend_extractor(IngredientExtractor.load(ROOT/'data/processed/sllm/ingredient_dict.json'),load_evidence())
     args=(RecInput.from_dict(row['input']),[],ext,OutputFilter.from_yaml(),DiseasePrediction(**row['prediction']),row['bundle'])
-    old.generate_grounded(Model(),*args);previous=contexts[:];contexts.clear()
-    _,response,_,review,trace=generate_grounded(Model(),*args)
-    assert contexts==previous and len(contexts)==1
-    assert not review['issues'] and response.ingredients and len(trace)==1
+    actual,response,_,review,trace=generate_grounded(Model(),*args)
+    assert actual.raw_text==result.raw_text and actual.parsed==result.parsed
+    assert len(trace)==len(contexts) and len(trace)>1
+    assert not review['issues'] and response.ingredients
+    assert response.generation_origin=='source_cards' and response.used_fallback
+    cards=[c for c in row['bundle']['claims'] if c['ingredient'] in {i.name for i in response.ingredients}]
+    expected=source_payload(cards,row['bundle'])
+    for card in cards:assert card['effect'] in expected['reasoning'][1]['content']
+    assert '수분이 남아 있을 때' in response.reasoning[2]
 
 
 def test_display_marker_cleanup_never_supplies_missing_fragrance():

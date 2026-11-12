@@ -16,7 +16,7 @@ from .grounded_contract import (VERSION as CONTRACT_VERSION,review_output,select
 
 
 def _assess_base(result,x,notes,extractor,output_filter,disease,bundle):
-    normalized=replace(result,parsed=display_parsed(without_citation_marks(result.parsed)))
+    normalized=replace(result,parsed=display_parsed(without_citation_marks(result.parsed,bundle)))
     response,findings=prepare_recommendation(normalized,x,notes,extractor,output_filter,disease)
     review=evidence_review(result.parsed,response,bundle)
     review['issues']=list(dict.fromkeys(review['issues']+review_boundary(result.parsed)))
@@ -105,7 +105,7 @@ def generate_grounded(model,x,notes,extractor,output_filter,disease,bundle,*,inc
     if (review['issues'] or response.quality_status!='ok') and include_evidence and bundle['claims']:
         cards=select_cards(bundle,response,requested_products(x))
         actual_input=model_input(x,disease)
-        result=model.recommend_with_context(actual_input,recovery_prompt(cards),disable_adapter=disable_adapter)
+        result=model.recommend_with_context(actual_input,recovery_prompt(cards,bundle),disable_adapter=disable_adapter)
         response,findings,review=assess(result,x,notes,extractor,output_filter,disease,bundle,
             recovery_ids=[c['id'] for c in cards])
         trace.append(dict(round=len(trace)+1,result=asdict(result),review=review,common_quality_issues=response.quality_issues,
@@ -131,17 +131,17 @@ def source_card_response(model_result,x,notes,extractor,output_filter,disease,bu
     by_id={c['id']:c for c in bundle['claims']}
     if not ids or len(ids)>2 or len(set(ids))!=len(ids) or any(i not in by_id for i in ids):
         raise ValueError('Source delivery requires up to two unique eligible card IDs')
-    cards=[by_id[i] for i in ids];payload=source_payload(cards)
+    cards=[by_id[i] for i in ids];payload=source_payload(cards,bundle)
     carrier=RecResult(payload,'source_cards_'+bundle['version'],False,0,json.dumps(payload,ensure_ascii=False),0,model_result.latency_ms)
     response,findings,review=assess(carrier,x,notes,extractor,output_filter,disease,bundle,recovery_ids=ids)
     response.generation_origin='source_cards'
     response.used_fallback=True
     for ingredient in response.ingredients:ingredient.purpose_source='source_card'
-    response.source_recovery=dict(version='source_card_delivery_v1',source_ids=list(ids),source_store_sha256=bundle['store_sha256'],
+    response.source_recovery=dict(version='source_card_delivery_v2',source_ids=list(ids),source_store_sha256=bundle['store_sha256'],
         trigger_issues=list(model_review['issues']),attempted_model_version=model_result.model_version,
         attempted_model_used_rule_fallback=model_result.used_fallback,method='verified_source_card_template')
     review['source_recovery']['mode']='server_source_card_template'
-    response.postprocess_version+='+source_card_delivery_v1'
+    response.postprocess_version+='+source_card_delivery_v2'
     review['source_delivery']=dict(**response.source_recovery,payload=payload,
         origin='server_source_cards_not_model_text',model_review=model_review)
     # The common checks above evaluated the trusted card payload before the
