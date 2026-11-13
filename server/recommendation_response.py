@@ -16,7 +16,7 @@ from .postprocess import contradictory_ingredients, structure_ingredients, struc
 from .recommendation_quality import sanitize_recommendation
 from .schemas import DiseasePrediction, RecommendResponse
 
-QUALITY_VERSION = "recommendation_quality_v1"
+QUALITY_VERSION = "recommendation_quality_v2"
 SENSITIVE_CONCERNS = {"민감성(트러블/자극감)", "붉어짐(홍조)"}
 
 
@@ -89,6 +89,7 @@ def prepare_recommendation(
                 if withheld else clean["answer"]),
         disclaimer=clean["disclaimer"], filtered=report.changed or bool(findings),
         used_fallback=result.used_fallback, input_notes=list(notes),
+        generation_origin='rule_fallback' if result.used_fallback else 'model',
         model_version=result.model_version, inference_ms=result.latency_ms,
         quality_status="withheld" if withheld else ("limited" if issues else "ok"),
         quality_issues=list(dict.fromkeys(issues)), postprocess_version=QUALITY_VERSION,

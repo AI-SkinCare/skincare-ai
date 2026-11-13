@@ -80,3 +80,63 @@ class DenseNetDiseaseClassifier:
             label=CLASS_NAMES[k], label_en=CLASS_NAMES_EN[k], confidence=probabilities[k],
             uncertain=probabilities[k] < self.threshold,
             probabilities=dict(zip(CLASS_NAMES, probabilities)), model_version=self.version)
+
+    def explain(self, image_bytes):
+        from src.vision.explain import explain_bytes
+        x = decode_image(image_bytes, self.transform, self.device)
+        return explain_bytes(self.model, x, image_bytes, 'densenet121')
+
+
+def decode_image(data, transform, device):
+    from PIL import Image, UnidentifiedImageError
+    try:
+        with warnings.catch_warnings():
+            warnings.simplefilter('error', Image.DecompressionBombWarning)
+            with Image.open(io.BytesIO(data)) as image:
+                if image.format not in ('PNG', 'JPEG'):
+                    raise InvalidDiseaseImage('JPEG 또는 PNG 이미지만 지원합니다')
+                return transform(image.convert('RGB')).unsqueeze(0).to(device)
+    except (UnidentifiedImageError, OSError, ValueError, Image.DecompressionBombError,
+            Image.DecompressionBombWarning) as exc:
+        raise InvalidDiseaseImage('이미지를 읽을 수 없습니다.') from exc
+
+
+class TrainedDiseaseClassifier:
+    """Explicit architecture + portable checkpoint; never download at serving."""
+
+    def __init__(self, weights, architecture, device='cpu', threshold=.6):
+        if not 0 <= threshold <= 1:
+            raise ValueError('invalid disease threshold')
+        self.weights = Path(weights)
+        self.architecture, self.device, self.threshold = architecture, device, threshold
+
+    def load(self):
+        import hashlib
+        from torchvision import transforms
+        from src.vision.models import load_checkpoint
+
+        self.model, checkpoint = load_checkpoint(self.weights, self.device)
+        cfg = checkpoint['config']
+        if cfg['architecture'] != self.architecture:
+            raise ValueError('configured and checkpoint architectures differ')
+        self.version = self.architecture + '_' + hashlib.sha256(self.weights.read_bytes()).hexdigest()[:10]
+        self.transform = transforms.Compose([
+            transforms.Resize((cfg['image_size'], cfg['image_size']), antialias=True),
+            transforms.ToTensor(), transforms.Normalize((.485, .456, .406), (.229, .224, .225)),
+        ])
+        return self
+
+    def predict(self, image_bytes):
+        import torch
+        x = decode_image(image_bytes, self.transform, self.device)
+        with torch.inference_mode():
+            values = self.model(x).float().softmax(1)[0].cpu().tolist()
+        index = max(range(len(values)), key=values.__getitem__)
+        return DiseasePrediction(label=CLASS_NAMES[index], label_en=CLASS_NAMES_EN[index],
+            confidence=values[index], uncertain=values[index] < self.threshold,
+            probabilities=dict(zip(CLASS_NAMES, values)), model_version=self.version)
+
+    def explain(self, image_bytes):
+        from src.vision.explain import explain_bytes
+        return explain_bytes(self.model, decode_image(image_bytes, self.transform, self.device),
+                             image_bytes, self.architecture)

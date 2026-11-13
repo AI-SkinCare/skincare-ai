@@ -1,0 +1,243 @@
+{
+  "version": "ingredient_evidence_20261112_v2",
+  "reviewed_at": "2026-11-12",
+  "review_type": "source_reading_by_software_agent_not_clinician_review",
+  "scope": "cosmetic_support_only_not_diagnosis_or_prescription",
+  "sources": {
+    "AAD_DRY": {
+      "url": "https://www.aad.org/public/everyday-care/skin-care-basics/dry/dermatologists-tips-relieve-dry-skin",
+      "title": "AAD: Dermatologists' top tips for relieving dry skin",
+      "kind": "dermatology_society_patient_guidance",
+      "summary": "건조 피부에는 무향 크림·연고를 제안하며 글리세린과 페트롤라툼을 포함한 제형을 예로 든다. 세정 뒤 보습을 안내한다."
+    },
+    "AAD_PET": {
+      "url": "https://www.aad.org/public/everyday-care/skin-care-secrets/routine/petroleum-jelly",
+      "title": "AAD: 5 ways to use petroleum jelly for skin care",
+      "kind": "dermatology_society_patient_guidance",
+      "summary": "건조 피부의 수분 보존에 사용하며 여드름이 잘 나는 얼굴에는 사용을 피하도록 안내한다."
+    },
+    "AAD_AD": {
+      "url": "https://www.aad.org/public/diseases/eczema/types/atopic-dermatitis/atopic-dermatitis-coping",
+      "title": "AAD: Atopic dermatitis skin care",
+      "kind": "dermatology_society_patient_guidance",
+      "summary": "무향 크림·연고, 목욕 후 보습과 새 제품의 사전 시험을 안내한다. 제품·개인별 반응은 다를 수 있다."
+    },
+    "AAD_PS": {
+      "url": "https://www.aad.org/public/diseases/psoriasis/skin-care/baths-showers",
+      "title": "AAD: Baths and showers with psoriasis",
+      "kind": "dermatology_society_patient_guidance",
+      "summary": "세정 뒤 물기를 가볍게 닦고 수분이 남은 피부에 무향 보습제를 사용하도록 안내한다. 특정 성분의 치료 효능이나 개인별 사용 처방을 입증하는 자료가 아니다."
+    },
+    "AAD_SD": {
+      "url": "https://www.aad.org/public/diseases/a-z/seborrheic-dermatitis-self-care",
+      "title": "AAD: Seborrheic dermatitis self-care",
+      "kind": "dermatology_society_patient_guidance",
+      "summary": "순한 세정 후 무향 보습제와 알코올 없는 제품, 산화아연 또는 이산화티타늄 함유 선크림을 안내한다. 알코올 회피는 보습제·선크림 등 피부·모발에 쓰는 제품에 적용된다. 특정 보습 성분의 질환 치료 효능을 입증하는 자료는 아니다."
+    },
+    "AAD_ROS": {
+      "url": "https://www.aad.org/public/diseases/rosacea/triggers/tips",
+      "title": "AAD: Rosacea skin care tips",
+      "kind": "dermatology_society_patient_guidance",
+      "summary": "주사 피부에는 무향 제품, 세정 후 마른 피부에 보습, 광범위 SPF30 이상 내수성 선크림을 안내한다. 자극이 있는 선크림의 대안으로 산화아연·이산화티타늄 함유 제형을 제시한다."
+    },
+    "GLY_RCT": {
+      "url": "https://pubmed.ncbi.nlm.nih.gov/18025807/",
+      "title": "Breternitz et al. 2008, glycerol-based emollient in atopic dermatitis",
+      "kind": "primary_randomized_vehicle_controlled_trial",
+      "summary": "아토피 24명이 20% 글리세롤 제형과 대조 제형을 4주 비교했다. 수분·장벽 지표는 개선됐으나 홍반·SCORAD·국소 중증도는 군간 유의차가 없었다. 연구 농도·빈도를 사용자 처방으로 쓰지 않는다."
+    },
+    "CER_RCT": {
+      "url": "https://pubmed.ncbi.nlm.nih.gov/33984185/",
+      "title": "Spada et al. 2021, ceramide-dominant cream and cleanser regimen",
+      "kind": "primary_randomized_formulation_trial",
+      "summary": "성인 습진 100명을 세라마이드 중심 크림·세정제와 대조 제형으로 28일 비교했다. 수분·수분 손실 지표는 개선됐으나 EASI 중증도 변화는 군간 유의차가 없었다. 제조사 관련 연구이며 단일 성분 효과를 분리하지 못한다."
+    },
+    "NIA_TRIAL": {
+      "url": "https://pubmed.ncbi.nlm.nih.gov/16209160/",
+      "title": "Draelos et al. 2005, niacinamide-containing moisturizer in rosacea",
+      "kind": "primary_small_formulation_study",
+      "summary": "주사 대상자 50명이 나이아신아마이드 함유 보습제를 4주 사용한 연구다. 얼굴 무처치 대조가 아닌 팔 부위 비교를 포함하며 초록에 농도와 정량 결과가 없다. 단일 성분 효과·치료·미백 효과는 확정하지 않는다."
+    }
+  },
+  "claims": [
+    {
+      "id": "E_GLY_MOIST",
+      "ingredient": "글리세린",
+      "aliases": [
+        "글리세린",
+        "글리세롤",
+        "GLYCERIN",
+        "GLYCEROL"
+      ],
+      "labels": [
+        "atopic",
+        "psoriasis",
+        "seborrheic",
+        "rosacea",
+        "acne",
+        "normal"
+      ],
+      "sources": [
+        "AAD_DRY",
+        "GLY_RCT"
+      ],
+      "effect": "글리세린 함유 보습 제형은 피부 수분 유지와 건조함 관리에 도움을 줄 수 있다.",
+      "evidence_scope": "dry_skin_guidance_and_specific_glycerol_formulation_trial",
+      "limitations": "지루·건선·여드름 치료, 항균·항염, 모든 제형의 효과를 입증하지 않는다.",
+      "conditions": [
+        "무향의 완제품 보습제를 제품 표시대로 사용한다.",
+        "자극이 생기면 사용을 중단한다."
+      ],
+      "concentration": "제품별로 달라 일률적 권장 농도 없음; 20%는 연구 조건일 뿐",
+      "frequency": "제품 표시와 피부 반응에 따름"
+    },
+    {
+      "id": "E_CER_MOIST",
+      "ingredient": "세라마이드",
+      "aliases": [
+        "세라마이드",
+        "CERAMIDE",
+        "CERAMIDES"
+      ],
+      "labels": [
+        "atopic",
+        "normal"
+      ],
+      "sources": [
+        "CER_RCT",
+        "AAD_AD"
+      ],
+      "effect": "세라마이드 함유 보습 제형은 수분 유지와 피부 장벽 보조 관리의 후보가 될 수 있다.",
+      "evidence_scope": "adult_eczema_combination_cream_cleanser_not_isolated_ingredient",
+      "limitations": "복합 제형 연구로 세라마이드 단독 효과나 다른 세라마이드 종류의 동등성, 질환 치료를 확정하지 않는다.",
+      "conditions": [
+        "무향의 완제품 보습제를 제품 표시대로 사용한다.",
+        "자극이 생기면 사용을 중단한다."
+      ],
+      "concentration": "검토한 자료로 일률적 농도를 권장할 수 없음",
+      "frequency": "제품 표시와 피부 반응에 따름",
+      "min_age": 18
+    },
+    {
+      "id": "E_PET_MOIST",
+      "ingredient": "페트롤라툼",
+      "aliases": [
+        "페트롤라툼",
+        "페트롤라텀",
+        "페트롤레움젤리",
+        "페트롤리움젤리",
+        "바셀린",
+        "PETROLATUM",
+        "PETROLEUM JELLY"
+      ],
+      "labels": [
+        "atopic",
+        "psoriasis",
+        "normal"
+      ],
+      "sources": [
+        "AAD_PET",
+        "AAD_DRY"
+      ],
+      "effect": "페트롤라툼 함유 보습 제형은 피부의 수분 보존과 건조함 관리에 도움을 줄 수 있다.",
+      "evidence_scope": "dry_skin_occlusive_support_not_disease_treatment",
+      "limitations": "질환 치료·감염 예방 효과를 추천 근거로 쓰지 않는다.",
+      "conditions": [
+        "무향 완제품을 사용하고 여드름이 잘 나는 얼굴에는 사용을 피한다.",
+        "자극이 생기면 사용을 중단한다."
+      ],
+      "concentration": "제품 표시를 따름; 직접 혼합·농도 처방 없음",
+      "frequency": "제품 표시와 피부 반응에 따름",
+      "exclude_acne": true
+    },
+    {
+      "id": "E_ZN_SUN",
+      "ingredient": "징크옥사이드",
+      "aliases": [
+        "징크옥사이드",
+        "산화아연",
+        "ZINC OXIDE"
+      ],
+      "labels": [
+        "rosacea",
+        "seborrheic",
+        "atopic",
+        "psoriasis",
+        "acne",
+        "normal"
+      ],
+      "sources": [
+        "AAD_ROS",
+        "AAD_SD",
+        "AAD_DRY"
+      ],
+      "effect": "징크옥사이드 함유 완제품 선크림은 자외선 차단을 위한 선택지다.",
+      "evidence_scope": "finished_sunscreen_product_guidance",
+      "limitations": "성분명이나 함량만으로 SPF·UVA 보호·무자극·질환 치료 효과를 확정할 수 없다.",
+      "conditions": [
+        "광범위 자외선 차단 표시와 SPF30 이상, 내수성 표시가 있는 무향 완제품을 선택한다.",
+        "제품의 사용·덧바름 표시를 따르고 자극이 생기면 중단한다."
+      ],
+      "concentration": "완제품 표시를 따름; 원료 배합이나 함량 처방 없음",
+      "frequency": "완제품 사용·덧바름 표시를 따름"
+    },
+    {
+      "id": "E_TI_SUN",
+      "ingredient": "티타늄디옥사이드",
+      "aliases": [
+        "티타늄디옥사이드",
+        "이산화티타늄",
+        "TITANIUM DIOXIDE"
+      ],
+      "labels": [
+        "rosacea",
+        "seborrheic",
+        "atopic",
+        "psoriasis",
+        "acne",
+        "normal"
+      ],
+      "sources": [
+        "AAD_ROS",
+        "AAD_SD",
+        "AAD_DRY"
+      ],
+      "effect": "티타늄디옥사이드 함유 완제품 선크림은 자외선 차단을 위한 선택지다.",
+      "evidence_scope": "finished_sunscreen_product_guidance",
+      "limitations": "성분명이나 함량만으로 SPF·UVA 보호·무자극·질환 치료 효과를 확정할 수 없다.",
+      "conditions": [
+        "광범위 자외선 차단 표시와 SPF30 이상, 내수성 표시가 있는 무향 완제품을 선택한다.",
+        "제품의 사용·덧바름 표시를 따르고 자극이 생기면 중단한다."
+      ],
+      "concentration": "완제품 표시를 따름; 원료 배합이나 함량 처방 없음",
+      "frequency": "완제품 사용·덧바름 표시를 따름"
+    },
+    {
+      "id": "E_NIA_FORM",
+      "ingredient": "나이아신아마이드",
+      "aliases": [
+        "나이아신아마이드",
+        "니아신아마이드",
+        "NIACINAMIDE",
+        "NICOTINAMIDE"
+      ],
+      "labels": [
+        "rosacea"
+      ],
+      "sources": [
+        "NIA_TRIAL",
+        "AAD_ROS"
+      ],
+      "effect": "나이아신아마이드 함유 보습제는 주사 피부의 보습 보조 관리 후보로 연구된 바 있다.",
+      "evidence_scope": "small_formulation_study_not_isolated_ingredient_efficacy",
+      "limitations": "초록만으로 단일 성분 효과·권장 농도를 확정할 수 없으며 치료·홍조 제거·미백 효과를 주장하지 않는다.",
+      "conditions": [
+        "무향의 완제품 보습제를 제품 표시대로 사용한다.",
+        "따가움 등 자극이 생기면 사용을 중단한다."
+      ],
+      "concentration": "검토한 초록에 농도 없음; 일률적 농도 권장 불가",
+      "frequency": "제품 표시와 피부 반응에 따름",
+      "min_age": 18
+    }
+  ]
+}
