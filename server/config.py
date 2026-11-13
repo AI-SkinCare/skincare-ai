@@ -22,7 +22,7 @@ class Settings:
     rec_adapter_dir: str | None = field(default_factory=lambda: _env("REC_ADAPTER_DIR", str(ROOT / "outputs/rec_sllm_v2/adapter")))
     rec_max_new_tokens: int = field(default_factory=lambda: int(_env("REC_MAX_NEW_TOKENS", "2400")))
     skin_backend: str = field(default_factory=lambda: _env("SKIN_BACKEND", "stub"))         # stub | model
-    # disabled | densenet; experimental image models remain outside this PR.
+    # disabled | densenet (S2) | densenet121 | efficientnet_b0 | dinov2_linear
     disease_backend: str = field(default_factory=lambda: _env("DISEASE_BACKEND", "disabled"))
     disease_weights: Path = field(default_factory=lambda: ROOT / _env("DISEASE_WEIGHTS", "model/weights/densenet121_s2.pt"))
     disease_device: str = field(default_factory=lambda: _env("DISEASE_DEVICE", "cpu"))

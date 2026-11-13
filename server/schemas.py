@@ -86,6 +86,38 @@ DiseaseLabel = Literal["건선", "아토피", "여드름", "정상", "주사", "
 Probability = Annotated[float, Field(ge=0, le=1, allow_inf_nan=False)]
 
 
+class DiseaseExplanation(BaseModel):
+    """A source-free attention map, never an original-face overlay."""
+    available: bool
+    method: Literal['grad_cam'] = 'grad_cam'
+    target_label: DiseaseLabel
+    model_version: str
+    heatmap_png_base64: str | None = Field(None, max_length=120_000)
+    interpretation: str = '밝은 영역은 모델 분류 점수에 영향을 준 영역입니다. 병변 위치·중증도·진단의 정답이 아닙니다.'
+    unavailable_reason: Literal['unsupported', 'constant_map', 'failed'] | None = None
+
+    @model_validator(mode='after')
+    def valid_map(self):
+        if not self.available:
+            if self.heatmap_png_base64 is not None:
+                raise ValueError('unavailable explanation cannot contain an image')
+            return self
+        import base64
+        import io
+        from PIL import Image
+        try:
+            data = base64.b64decode(self.heatmap_png_base64 or '', validate=True)
+            with Image.open(io.BytesIO(data)) as image:
+                if image.format != 'PNG' or image.mode != 'L' or image.size != (256, 256):
+                    raise ValueError('explanation must be a 256x256 grayscale PNG')
+                image.verify()
+        except (ValueError, OSError) as exc:
+            raise ValueError('invalid explanation heatmap') from exc
+        if self.unavailable_reason is not None:
+            raise ValueError('available explanation cannot have a failure reason')
+        return self
+
+
 class DiseasePrediction(BaseModel):
     """분류기 원본 JSON + 추적 정보. 점수는 임상적 질환 확률이 아니다."""
     label: DiseaseLabel
@@ -95,6 +127,7 @@ class DiseasePrediction(BaseModel):
     probabilities: dict[DiseaseLabel, Probability]
     model_version: str = "external"
     inference_ms: int = Field(0, ge=0)
+    explanation: DiseaseExplanation | None = None
 
     @model_validator(mode="after")
     def consistent_classification(self):

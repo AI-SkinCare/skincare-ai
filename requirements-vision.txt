@@ -1,0 +1,7 @@
+# RTX 50 시리즈: torch/torchvision CUDA 12.8 호환 휠을 먼저 설치하세요.
+-r requirements.txt
+torch>=2.6,<3
+torchvision>=0.21,<1
+transformers>=4.51,<5
+pillow>=10
+numpy>=1.26

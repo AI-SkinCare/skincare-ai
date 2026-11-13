@@ -26,7 +26,7 @@ from src.llm.output_filter import OutputFilter
 
 from .adapters import build_rec_input, load_mapping
 from .config import Settings, settings as default_settings
-from .disease_classifier import DenseNetDiseaseClassifier, InvalidDiseaseImage
+from .disease_classifier import DenseNetDiseaseClassifier, TrainedDiseaseClassifier, InvalidDiseaseImage
 from .medical_context import load_medical_knowledge, medical_reference, reference_prompt
 from .ingredient_evidence import (EVIDENCE_GUIDANCE, load_evidence, extend_extractor,
                                   retrieve_evidence, evidence_prompt, evidence_review, enforce_evidence)
@@ -34,7 +34,7 @@ from .grounded_generation import generate_grounded
 from .disease_pipeline import build_disease_rec_input, disease_guidance, load_disease_mapping
 from .recommendation_quality import SERVING_GUIDANCE
 from .recommendation_response import prepare_recommendation
-from .schemas import (AnalyzeResponse, DiseaseAnalyzeResponse, DiseasePrediction, DiseaseRecommendRequest,
+from .schemas import (AnalyzeResponse, DiseaseAnalyzeResponse, DiseasePrediction, DiseaseExplanation, DiseaseRecommendRequest,
                       HealthResponse, ModelInfo, RecommendRequest, RecommendResponse, SkinMetricsResponse, Survey)
 from .skin_regressor import load_skin_regressor
 
@@ -141,6 +141,10 @@ def create_app(cfg: Settings | None = None, *, disease_classifier_factory=None) 
             state["disease"] = await run_in_threadpool(
                 lambda: DenseNetDiseaseClassifier(cfg.disease_weights, cfg.disease_device,
                                                    cfg.disease_threshold).load())
+        elif cfg.disease_backend in ('densenet121', 'efficientnet_b0', 'dinov2_linear'):
+            state['disease'] = await run_in_threadpool(
+                lambda: TrainedDiseaseClassifier(cfg.disease_weights, cfg.disease_backend,
+                                                 cfg.disease_device, cfg.disease_threshold).load())
         elif cfg.disease_backend != "disabled":
             raise ValueError(f"알 수 없는 DISEASE_BACKEND: {cfg.disease_backend}")
         # GPU를 명시한 경우 Qwen과 같은 슬롯 사용. 기본 CPU는 독립 직렬 처리.
@@ -222,12 +226,40 @@ def create_app(cfg: Settings | None = None, *, disease_classifier_factory=None) 
             log.info("추천 품질 검사: %s", response.quality_issues)
         return response
 
-    async def _disease(data: bytes) -> DiseasePrediction:
+    def _explanation(classifier, data, prediction):
+        base = dict(target_label=prediction.label, model_version=prediction.model_version)
+        if not hasattr(classifier, 'explain'):
+            return DiseaseExplanation(**base, available=False, unavailable_reason='unsupported')
+        try:
+            value = classifier.explain(data)
+            from .disease_classifier import CLASS_NAMES
+            if (CLASS_NAMES[value['target_class_index']] != prediction.label
+                    or len(value.get('probabilities', [])) != 6
+                    or any(abs(value['probabilities'][i] - prediction.probabilities[label]) > .0002
+                           for i, label in enumerate(CLASS_NAMES))):
+                raise ValueError('explanation target differs from prediction')
+            available = bool(value.get('available'))
+            return DiseaseExplanation(**base, available=available,
+                heatmap_png_base64=value.get('heatmap_png_base64') if available else None,
+                unavailable_reason=None if available else 'constant_map')
+        except Exception:
+            # Optional explanation must not discard a valid classification.
+            # Neither image bytes nor model output/error text enter logs.
+            return DiseaseExplanation(**base, available=False, unavailable_reason='failed')
+
+    def _predict(data, include_explanation):
+        classifier = state['disease']
+        prediction = DiseasePrediction.model_validate(classifier.predict(data))
+        if include_explanation:
+            prediction.explanation = _explanation(classifier, data, prediction)
+        return prediction
+
+    async def _disease(data: bytes, include_explanation=False) -> DiseasePrediction:
         if "disease" not in state:
             raise AppError("E3001", 503, "질환 분류 모델이 비활성화돼 있습니다. DISEASE_BACKEND 설정을 확인하세요.")
         t0 = time.perf_counter()
         try:
-            result = await state["disease_gate"].run(state["disease"].predict, data, timeout=30)
+            result = await state["disease_gate"].run(_predict, data, include_explanation, timeout=30)
         except InvalidDiseaseImage as exc:
             raise AppError("E2002", 422, "이미지를 해석할 수 없습니다. 다시 촬영해 주세요.", str(exc)) from exc
         pred = DiseasePrediction.model_validate(result)
@@ -293,8 +325,13 @@ def create_app(cfg: Settings | None = None, *, disease_classifier_factory=None) 
         return await _recommend(req)
 
     @app.post("/infer/disease", response_model=DiseasePrediction, dependencies=[Depends(auth)])
-    async def disease(image: UploadFile = File(...)):
-        return await _disease(await _read_image(image))
+    async def disease(image: UploadFile = File(...), include_explanation: bool = Form(False)):
+        return await _disease(await _read_image(image), include_explanation)
+
+    @app.post('/infer/disease-explain', response_model=DiseaseExplanation, dependencies=[Depends(auth)])
+    async def disease_explain(image: UploadFile = File(...)):
+        prediction = await _disease(await _read_image(image), True)
+        return prediction.explanation
 
     @app.post("/infer/disease-recommend", response_model=DiseaseAnalyzeResponse, dependencies=[Depends(auth)])
     async def disease_recommend(req: DiseaseRecommendRequest):
