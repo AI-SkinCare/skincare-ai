@@ -37,7 +37,7 @@ $env:AI_INTERNAL_TOKEN = "dev-token"
 | 메서드 | 경로 | 설명 |
 |---|---|---|
 | GET | `/health` | 헬스체크 (인증 불필요) |
-| GET | `/model-info` | 로드된 모델 버전 |
+| GET | `/model-info` | 모델 버전과 공개 모델 ID. 로컬 가중치·어댑터 경로는 반환하지 않음 |
 | POST | `/infer/skin-metrics` | 이미지 → ROI별 피부 지표 (0~1) |
 | POST | `/infer/recommend` | 설문 + 측정값 → 성분·관리법 추천 |
 | POST | `/infer/analyze` | 위 두 단계 통합 |

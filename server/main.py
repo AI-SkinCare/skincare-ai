@@ -11,8 +11,10 @@ import asyncio
 import hmac
 import json
 import logging
+import re
 import time
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import Depends, FastAPI, File, Form, Header, Request, UploadFile
 from fastapi.concurrency import run_in_threadpool
@@ -311,9 +313,13 @@ def create_app(cfg: Settings | None = None, *, disease_classifier_factory=None) 
 
     @app.get("/model-info", response_model=ModelInfo, dependencies=[Depends(auth)])
     async def model_info():
+        # Only advertise a registry-style ID, never the filesystem model location.
+        base = cfg.rec_base_model
+        public_base = (base if cfg.rec_backend == "sllm" and base
+                       and re.fullmatch(r"[A-Za-z0-9_][A-Za-z0-9_.-]*/[A-Za-z0-9_][A-Za-z0-9_.-]*", base)
+                       and not Path(base).is_dir() else None)
         return ModelInfo(rec_model_version=state["rec"].version, skin_model_version=state["skin"].version,
-                         rec_base_model=cfg.rec_base_model if cfg.rec_backend == "sllm" else None,
-                         rec_adapter_dir=cfg.rec_adapter_dir if cfg.rec_backend == "sllm" else None,
+                         rec_base_model=public_base,
                          disease_model_version=state["disease"].version if "disease" in state else None)
 
     @app.post("/infer/skin-metrics", response_model=SkinMetricsResponse, dependencies=[Depends(auth)])

@@ -194,5 +194,4 @@ class ModelInfo(BaseModel):
     rec_model_version: str
     skin_model_version: str
     rec_base_model: str | None
-    rec_adapter_dir: str | None
     disease_model_version: str | None = None
