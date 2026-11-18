@@ -5,6 +5,7 @@ is an explicit missing explanation, not an empty string filled with canned advic
 """
 from __future__ import annotations
 
+import hashlib
 import re
 
 from src.llm.inference import RecResult
@@ -18,6 +19,19 @@ from .schemas import DiseasePrediction, RecommendResponse
 
 QUALITY_VERSION = "recommendation_quality_v2"
 SENSITIVE_CONCERNS = {"민감성(트러블/자극감)", "붉어짐(홍조)"}
+LEGACY_MODEL_VERSION_LIMIT = 40
+
+
+def public_recommendation_version(version: str) -> str:
+    """Fit the legacy Spring response field while distinguishing long identifiers."""
+    # Spring measures String.length() in UTF-16 code units.
+    utf16 = version.encode("utf-16-le")
+    if len(utf16) <= LEGACY_MODEL_VERSION_LIMIT * 2:
+        return version
+    suffix = "-" + hashlib.sha256(version.encode("utf-8")).hexdigest()[:12]
+    prefix_units = LEGACY_MODEL_VERSION_LIMIT - len(suffix)
+    prefix = utf16[:prefix_units * 2].decode("utf-16-le", errors="ignore")
+    return prefix + suffix
 
 
 def reports_sensitivity(note: str | None) -> bool:

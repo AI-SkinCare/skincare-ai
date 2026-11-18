@@ -35,7 +35,7 @@ from .ingredient_evidence import (EVIDENCE_GUIDANCE, load_evidence, extend_extra
 from .grounded_generation import generate_grounded
 from .disease_pipeline import build_disease_rec_input, disease_guidance, load_disease_mapping
 from .recommendation_quality import SERVING_GUIDANCE
-from .recommendation_response import prepare_recommendation
+from .recommendation_response import prepare_recommendation, public_recommendation_version
 from .schemas import (AnalyzeResponse, DiseaseAnalyzeResponse, DiseasePrediction, DiseaseExplanation, DiseaseRecommendRequest,
                       HealthResponse, ModelInfo, RecommendRequest, RecommendResponse, SkinMetricsResponse, Survey)
 from .skin_regressor import load_skin_regressor
@@ -226,6 +226,7 @@ def create_app(cfg: Settings | None = None, *, disease_classifier_factory=None) 
         if findings:
             # Do not log user notes or generated health text in normal server logs.
             log.info("추천 품질 검사: %s", response.quality_issues)
+        response.model_version = public_recommendation_version(response.model_version)
         return response
 
     def _explanation(classifier, data, prediction):
