@@ -16,6 +16,21 @@ from src.llm.output_filter import OutputFilter
 
 ROOT=Path(__file__).resolve().parents[1]
 OLD=ROOT/'outputs/product_conditions_20261110'
+RECOVERY_RESPONSES = OLD / "novel_v1/responses.jsonl"
+
+
+@pytest.fixture
+def historical_recovery_case():
+    if not RECOVERY_RESPONSES.is_file():
+        pytest.skip("local historical outputs unavailable")
+    with RECOVERY_RESPONSES.open(encoding="utf-8") as responses:
+        for line in responses:
+            if not line.strip():
+                continue
+            row = json.loads(line)
+            if row["arm"] == "v3_with" and row["case_id"] == "mix_ros_avoid_nia":
+                return row
+    pytest.fail(f"Missing historical recovery case in {RECOVERY_RESPONSES}")
 
 
 def result(parsed,raw=None):
@@ -70,10 +85,8 @@ def test_a_routine_only_sunscreen_is_not_a_complete_recovery():
     assert 'contract_recovery_selection_mismatch' in issues and 'contract_recovery_effect_missing' in issues
 
 
-@pytest.mark.skipif(not (OLD/'novel_v1/responses.jsonl').exists(),reason='local historical outputs unavailable')
-def test_invalid_source_draft_can_recover_from_complete_source_spec():
-    from scripts.compare_classification_boundary import rows
-    row=next(r for r in rows(OLD/'novel_v1/responses.jsonl') if r['arm']=='v3_with' and r['case_id']=='mix_ros_avoid_nia')
+def test_invalid_source_draft_can_recover_from_complete_source_spec(historical_recovery_case):
+    row = historical_recovery_case
     bad=RecResult(**row['result']);cards=[c for c in row['bundle']['claims'] if c['id'] in ('E_GLY_MOIST','E_ZN_SUN')]
     p=payload();p['reasoning'][1]['content']='\n'.join(c['effect']+' ['+c['id']+']' for c in cards)
     p['reasoning'][2]['content']='\n'.join(c['ingredient']+': '+' '.join(c['conditions']) for c in cards)
@@ -108,11 +121,9 @@ def test_json_escape_preserves_canonical_pet_without_post_generation_edit():
     assert '페트롤라툼' in decoded['answer'] and not review_output(result(decoded,raw))['issues']
 
 
-@pytest.mark.skipif(not (OLD/'novel_v1/responses.jsonl').exists(),reason='local historical outputs unavailable')
-def test_source_card_delivery_is_explicit_and_never_overwrites_model_result():
-    from scripts.compare_classification_boundary import rows
+def test_source_card_delivery_is_explicit_and_never_overwrites_model_result(historical_recovery_case):
     from server.grounded_generation import assess,source_card_response
-    row=next(r for r in rows(OLD/'novel_v1/responses.jsonl') if r['arm']=='v3_with' and r['case_id']=='mix_ros_avoid_nia')
+    row = historical_recovery_case
     bad=replace(RecResult(**row['result']),attempts=1);calls=[]
     class Model:
         def recommend_with_context(self,x,context,**kwargs):calls.append(context);return bad
