@@ -1,11 +1,16 @@
 import json
+from dataclasses import replace
 
 import pytest
 from fastapi.testclient import TestClient
 
 from server import main
 from server.config import Settings
-from server.recommendation_response import prepare_recommendation, reports_sensitivity
+from server.recommendation_response import (
+    prepare_recommendation,
+    public_recommendation_version,
+    reports_sensitivity,
+)
 from src.llm.fallback import RuleBasedRecommender
 from src.llm.inference import MockRecommender, RecResult, SLLMRecommender
 from src.llm.ingredients import IngredientExtractor
@@ -22,6 +27,29 @@ def sample(answer="판테놀을 보습 관리 후보로 제안합니다."):
 
 def inputs():
     return RecInput("여성", 30, "중성", ["민감성(트러블/자극감)"])
+
+
+def test_public_model_version_fits_the_legacy_spring_field(monkeypatch, tmp_path):
+    version = "base_Qwen2.5-7B-Instruct__source_context_v1"
+
+    class LongVersionRecommender(MockRecommender):
+        def recommend(self, x):
+            return replace(super().recommend(x), model_version=version)
+
+    monkeypatch.setattr(main, "MockRecommender", LongVersionRecommender)
+    cfg = Settings(internal_token="test", rec_backend="mock", processed_dir=tmp_path)
+    with TestClient(main.create_app(cfg)) as client:
+        response = client.post("/infer/recommend", headers={"X-Internal-Token": "test"}, json={
+            "survey": {"gender": "female", "ageBand": "20s", "selfReportedConcerns": ["건조함"]},
+        })
+    assert response.status_code == 200
+    wire_version = response.json()["model_version"]
+    assert wire_version == public_recommendation_version(version)
+    assert len(wire_version) == 40
+    assert wire_version != public_recommendation_version(version[:-1] + "2")
+    assert public_recommendation_version("rec_sllm_v2") == "rec_sllm_v2"
+    supplementary_chars = "a" + "\U0001f9f4" * 25
+    assert len(public_recommendation_version(supplementary_chars).encode("utf-16-le")) <= 80
 
 
 def test_no_efficacy_is_invented_to_fill_a_missing_purpose():

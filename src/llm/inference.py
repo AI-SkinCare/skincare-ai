@@ -6,6 +6,8 @@ torch/transformers는 load() 안에서만 import한다.
 from __future__ import annotations
 
 import time
+from contextlib import nullcontext
+from threading import RLock
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Protocol
@@ -66,6 +68,7 @@ class SLLMRecommender:
         self.serving_guidance = serving_guidance
         self.model = None
         self.tok = None
+        self._generation_lock = RLock()
 
     def load(self) -> "SLLMRecommender":
         import torch
@@ -95,7 +98,7 @@ class SLLMRecommender:
         self.model = model
         return self
 
-    def generate_raw(self, x: RecInput, sample: bool = False) -> tuple[str, int]:
+    def generate_raw(self, x: RecInput, sample: bool = False, trusted_context: str | None = None) -> tuple[str, int]:
         import torch
 
         assert self.model is not None, "load()를 먼저 호출하세요"
@@ -103,6 +106,15 @@ class SLLMRecommender:
         messages = build_messages(x)
         if self.serving_guidance:
             messages[0]["content"] += "\n\n" + self.serving_guidance
+        if trusted_context:
+            # Evidence mode is an extractive task, not the generic beauty-advice
+            # persona. Both paired arms receive the same task instructions.
+            messages[0]["content"] = (self.serving_guidance or '') + '\n\n' + trusted_context
+            messages[1]['content'] += '\n\n서버 참고 자료와 규약:\n' + trusted_context
+            messages[1]['content'] += ('\n\n서버 출력 조건: 첫 단계는 다음 한 문장만 쓰세요: 사진 분류와 설문만으로 개인의 상태를 확정할 수 없습니다. '
+                '두 번째 단계는 성분을 최대 두 개 선택하세요. 근거 자료가 있으면 각 성분의 effect 문장을 그대로 사용하고 끝에 정확한 [E_...] ID를 붙이세요. 추가 효능 문장을 만들지 마세요. '
+                '세 번째 단계에는 무향 완제품, 제품 표시대로 사용, 자극 시 중단 조건을 반드시 포함하세요. 선크림을 골랐다면 광범위 SPF30 이상 내수성 표시 조건도 쓰세요. '
+                '연구 수치·고농도·임의의 횟수나 대기시간을 권장하지 마세요. 단일 성분으로 질환 치료·항염·항균 효과를 단정하지 마세요. JSON 외에는 쓰지 마세요.')
         prompt = self.tok.apply_chat_template(messages, tokenize=False, add_generation_prompt=True,
                                               enable_thinking=False)
         enc = self.tok(prompt, return_tensors="pt", add_special_tokens=False)
@@ -120,11 +132,30 @@ class SLLMRecommender:
         return self.tok.decode(new, skip_special_tokens=True), int(new.shape[0])
 
     def recommend(self, x: RecInput) -> RecResult:
+        return self._recommend(x)
+
+    def recommend_with_context(self, x: RecInput, trusted_context: str, *, disable_adapter: bool = False) -> RecResult:
+        """Request-local server evidence; never mutate shared serving guidance."""
+        result = self._recommend(x, trusted_context, disable_adapter)
+        if disable_adapter and hasattr(self.model, 'disable_adapter'):
+            result.model_version = 'base_' + self.base_model.split('/')[-1] + '__source_context_v1'
+        return result
+
+    def _recommend(self, x: RecInput, trusted_context: str | None = None, disable_adapter: bool = False) -> RecResult:
+        # PEFT's temporary switch is model-wide. Serialize all recommendations,
+        # including the legacy path, so concurrent HTTP calls cannot observe it.
+        with self._generation_lock:
+            ctx = self.model.disable_adapter() if disable_adapter and hasattr(self.model, 'disable_adapter') else nullcontext()
+            with ctx:
+                return self._run_recommend(x, trusted_context)
+
+    def _run_recommend(self, x: RecInput, trusted_context: str | None = None) -> RecResult:
         t0 = time.perf_counter()
         raw, n_tok, attempts = "", 0, 0
         for sample in (False, True):  # 1차 greedy, 실패 시 1회 샘플링 재생성
             attempts += 1
-            raw, n = self.generate_raw(x, sample=sample)
+            raw, n = (self.generate_raw(x, sample=sample, trusted_context=trusted_context)
+                      if trusted_context else self.generate_raw(x, sample=sample))
             n_tok += n
             parsed = parse_output(raw)
             if parsed:

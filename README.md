@@ -1,5 +1,8 @@
 # skincare-ai
 
+멘토 제안(DINOv2 동결 분류기·EfficientNet·Grad-CAM)의 서비스 연결, 모델 비교와
+앱 응답 계약은 [멘토 제안 서비스 적용 기록](docs/mentor-serving-20261113.md)을 참고하세요.
+
 스마트폰 촬영 영상 기반 피부 상태 정량화 및 맞춤 성분 추천 AI 서비스의 **AI 모델 / 추론 서버** 저장소입니다.
 
 ## 역할
@@ -34,7 +37,7 @@ $env:AI_INTERNAL_TOKEN = "dev-token"
 | 메서드 | 경로 | 설명 |
 |---|---|---|
 | GET | `/health` | 헬스체크 (인증 불필요) |
-| GET | `/model-info` | 로드된 모델 버전 |
+| GET | `/model-info` | 모델 버전과 공개 모델 ID. 로컬 가중치·어댑터 경로는 반환하지 않음 |
 | POST | `/infer/skin-metrics` | 이미지 → ROI별 피부 지표 (0~1) |
 | POST | `/infer/recommend` | 설문 + 측정값 → 성분·관리법 추천 |
 | POST | `/infer/analyze` | 위 두 단계 통합 |
