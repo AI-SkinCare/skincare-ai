@@ -58,9 +58,11 @@ def study_records():
         topics = " OR ".join(term + "[ti]" for term in topic.split(" OR "))
         focuses = "".join(term if term in (" OR ", " AND ") else term + "[tiab]"
                           for term in re.split(r"( OR | AND )", focus))
-        query = f'({topics}) AND ({focuses}) AND (randomized controlled trial[pt] OR systematic review[pt] OR clinical trial[pt]) NOT (retracted publication[pt] OR retraction of publication[pt])'
+        query = (f'({topics}) AND ({focuses}) AND (randomized controlled trial[pt] OR systematic review[pt] OR clinical trial[pt]) '
+                 'NOT (retracted publication[pt] OR retraction of publication[pt] OR (animals[mh] NOT humans[mh]) '
+                 'OR dogs[ti] OR canine[ti] OR feline[ti] OR murine[ti] OR mice[ti])')
         hits = fetch(endpoint + "esearch.fcgi", {"db":"pubmed","term":query,"retmode":"json",
-                                                "retmax":24,"sort":"relevance"})["esearchresult"]["idlist"]
+                                                "retmax":60,"sort":"relevance"})["esearchresult"]["idlist"]
         if not hits:
             continue
         time.sleep(.45)

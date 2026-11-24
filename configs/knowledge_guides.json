@@ -168,5 +168,65 @@
     "text": "레티노이드 제품은 건조함이나 자극을 일으킬 수 있습니다. 피부에 붉은 기나 염증이 있거나 어느 제품이 맞을지 판단하기 어렵다면 피부과에서 먼저 상담하세요.",
     "tags": "레티놀 레티노이드 retinol retinoid 자극 건조",
     "date": ""
+  },
+  {
+    "id": "CHAPPED_LIPS",
+    "kind": "guide",
+    "title": "갈라진 입술에 바르는 제품 고르기",
+    "publisher": "미국피부과학회",
+    "url": "https://www.aad.org/public/everyday-care/skin-care-basics/dry/heal-dry-chapped-lips",
+    "text": "입술이 갈라졌다면 바를 때 따갑거나 화끈거리는 립 제품은 중단하세요. 향이 없는 립밤을 여러 번 바르고, 많이 갈라졌을 때는 흰 바셀린 같은 연고로 수분을 보호할 수 있습니다. 입술을 핥으면 침이 마르면서 더 건조해질 수 있습니다.",
+    "tags": "입술 립밤 갈라짐 입술염 립케어",
+    "date": ""
+  },
+  {
+    "id": "SHAVING",
+    "kind": "guide",
+    "title": "면도 뒤 자극을 줄이는 순서",
+    "publisher": "미국피부과학회",
+    "url": "https://www.aad.org/public/everyday-care/skin-care-basics/hair/how-to-shave",
+    "text": "따뜻한 물로 털을 충분히 적신 뒤 면도 크림이나 젤을 바르세요. 털이 자라는 방향으로 면도하고 한 번 밀 때마다 날을 헹구세요. 여드름이 있는 부위는 가볍게 지나가고 돌출된 병변을 날로 깎지 마세요.",
+    "tags": "면도 면도기 면도날 수염 razor shaving",
+    "date": ""
+  },
+  {
+    "id": "MAKEUP_BRUSH",
+    "kind": "guide",
+    "title": "화장 브러시를 씻고 말리는 방법",
+    "publisher": "미국피부과학회",
+    "url": "https://www.aad.org/public/everyday-care/skin-care-secrets/routine/clean-your-makeup-brushes",
+    "text": "화장 브러시는 7~10일마다 씻으세요. 미지근한 물에 솔 끝을 적시고 순한 샴푸로 씻은 뒤 맑은 물이 나올 때까지 헹구세요. 깨끗한 수건으로 물기를 누르고 솔 끝이 탁자 밖으로 나오도록 눕혀 말리세요.",
+    "tags": "브러시 브러쉬 화장솔 메이크업솔 세척 화장도구",
+    "date": ""
+  },
+  {
+    "id": "POST_WORKOUT",
+    "kind": "guide",
+    "title": "운동 중 땀 닦기와 운동 후 세안",
+    "publisher": "미국피부과학회",
+    "url": "https://www.aad.org/public/diseases/acne/causes/workouts",
+    "text": "운동 전에는 메이크업을 지우고, 운동 중에는 깨끗한 수건으로 땀을 눌러 닦으세요. 운동이 끝나면 가능한 한 빨리 샤워하고, 여드름이 잘 생기는 부위는 순한 오일 프리 세정제로 부드럽게 씻으세요.",
+    "tags": "운동 헬스 땀 운동후 운동복 땀관리",
+    "date": ""
+  },
+  {
+    "id": "ECZEMA_SWIM",
+    "kind": "guide",
+    "title": "아토피가 있는 아이의 수영장 이용",
+    "publisher": "미국피부과학회",
+    "url": "https://www.aad.org/public/diseases/eczema/childhood/triggers/swimming",
+    "text": "피부에 진물이나 열린 상처, 감염이 있거나 습진이 심하게 악화된 날에는 수영장을 피하세요. 수영할 수 있는 날에는 입수 전에 보습제를 바르고, 나온 직후 미지근한 물로 헹군 다음 피부가 조금 촉촉할 때 다시 보습하세요.",
+    "tags": "수영 수영장 물놀이 염소 수영후 입수 아동",
+    "date": ""
+  },
+  {
+    "id": "ACNE_MAKEUP",
+    "kind": "guide",
+    "title": "여드름 피부의 화장과 클렌징",
+    "publisher": "미국피부과학회",
+    "url": "https://www.aad.org/public/diseases/acne/causes/makeup",
+    "text": "메이크업 제품은 포장에서 오일 프리 또는 논코메도제닉 표시를 확인하세요. 자기 전에는 화장을 지우고, 화장이나 브러시를 다른 사람과 함께 쓰지 마세요.",
+    "tags": "메이크업 색조 화장 파운데이션 클렌징 논코메도제닉",
+    "date": ""
   }
 ]
