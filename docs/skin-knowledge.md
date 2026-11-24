@@ -27,4 +27,6 @@ python scripts/refresh_skin_knowledge.py
 python -m pytest tests/test_skin_knowledge.py -q
 ```
 
+한국어 안내만 수정했다면 `python scripts/refresh_skin_knowledge.py --local-only`로 기존 공개 데이터와 수집일을 유지하면서 다시 색인할 수 있다. 서버는 요청마다 읽기 전용 연결을 열어 교체된 DB를 바로 읽는다.
+
 갱신 작업은 공개 API에서 문헌·라벨을 다시 수집하고, PMID와 라벨 세트 ID로 중복을 정리한다. 새 인덱스의 무결성 검사가 끝나야 기존 파일을 교체한다. 직접 확인한 한국어 요약과 검색 별칭은 `configs/knowledge_guides.json`, 기존 성분 출처는 `configs/ingredient_evidence.json`에서 관리한다. 이번 스냅샷은 전체 PubMed 문헌이나 국내 판매 화장품 전수 목록을 대표하지 않는다. 공개 수집 인터페이스는 [NCBI E-utilities](https://www.ncbi.nlm.nih.gov/books/NBK25501/)와 [openFDA 제품 라벨](https://open.fda.gov/apis/drug/label/)을 사용한다.

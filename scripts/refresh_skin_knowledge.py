@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import argparse
 from collections import Counter
+from contextlib import closing
 from datetime import datetime, timezone
 import html
 import json
@@ -170,7 +171,17 @@ def build(path, rows, as_of):
 if __name__ == "__main__":
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("--output", type=Path, default=DEFAULT_DB)
+    p.add_argument("--local-only", action="store_true", help="Re-index edited local guides using the existing public snapshot")
     args = p.parse_args()
-    rows = local_records() + study_records() + product_records()
-    build(args.output, rows, datetime.now(timezone.utc).date().isoformat())
+    rows = local_records()
+    if args.local_only:
+        with closing(sqlite3.connect(args.output.resolve().as_uri() + "?mode=ro", uri=True)) as db:
+            db.row_factory = sqlite3.Row
+            as_of = db.execute("SELECT as_of FROM metadata WHERE schema_version=1").fetchone()[0]
+            rows.extend(dict(r) for r in db.execute("SELECT * FROM docs WHERE id LIKE 'PMID-%' OR id LIKE 'SPL-%'"))
+    else:
+        rows.extend(study_records())
+        rows.extend(product_records())
+        as_of = datetime.now(timezone.utc).date().isoformat()
+    build(args.output, rows, as_of)
     print(dict(Counter(r["kind"] for r in rows)))
