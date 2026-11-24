@@ -12,6 +12,7 @@ import hmac
 import json
 import logging
 import re
+import sqlite3
 import time
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -33,6 +34,7 @@ from .medical_context import load_medical_knowledge, medical_reference, referenc
 from .ingredient_evidence import (EVIDENCE_GUIDANCE, load_evidence, extend_extractor,
                                   retrieve_evidence, evidence_prompt, evidence_review, enforce_evidence)
 from .grounded_generation import generate_grounded
+from .knowledge import DEFAULT_DB, KnowledgeAnswer, KnowledgeQuery, apply_selection, retrieve
 from .disease_pipeline import build_disease_rec_input, disease_guidance, load_disease_mapping
 from .recommendation_quality import SERVING_GUIDANCE
 from .recommendation_response import prepare_recommendation, public_recommendation_version
@@ -322,6 +324,23 @@ def create_app(cfg: Settings | None = None, *, disease_classifier_factory=None) 
         return ModelInfo(rec_model_version=state["rec"].version, skin_model_version=state["skin"].version,
                          rec_base_model=public_base,
                          disease_model_version=state["disease"].version if "disease" in state else None)
+
+    @app.post("/knowledge/search", response_model=KnowledgeAnswer, dependencies=[Depends(auth)])
+    async def knowledge_search(request: KnowledgeQuery):
+        try:
+            result = await run_in_threadpool(retrieve, DEFAULT_DB, request)
+        except sqlite3.Error:
+            raise AppError("E3001", 503, "피부 자료 검색 DB를 열 수 없습니다.")
+        selector = getattr(state["rec"], "select_knowledge", None)
+        gate = state["rec_gate"]
+        if request.kind == "guide" and result.sources and selector and not gate.sem.locked():
+            passages = [s.title + "\n" + s.text for s in result.sources]
+            try:
+                index = await gate.run(selector, request.query, passages, timeout=min(12, cfg.rec_timeout_s))
+                return apply_selection(result, index)
+            except (AppError, RuntimeError):
+                log.info("근거 문단 선택 대신 검색 순위를 사용합니다.")
+        return result
 
     @app.post("/infer/skin-metrics", response_model=SkinMetricsResponse, dependencies=[Depends(auth)])
     async def skin_metrics(image: UploadFile = File(...), device_type: str = Form("smartphone")):
