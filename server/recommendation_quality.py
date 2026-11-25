@@ -82,12 +82,18 @@ _ROOT_CAUSE = re.compile(
     r"근본적(?:인)?\s*원인(?:은|이)\s*[^.!?\n]{1,200}?"
     r"(?:입니다|이다|이며|이므로|에\s*있습니다)"
 )
+_UNASSESSED_SEVERITY = re.compile(
+    r"중증도(?:는|가)?\s*(?:경증|중등도|중증)"
+    r"|(?:경증|중등도|중증)\s*(?:의\s*)?(?:아토피|건선|주사|피부염|여드름)"
+    r"|EASI(?:\s*점수)?\s*(?:는|가|:)?\s*\d", re.I
+)
 _EFFICACY = re.compile(
     r"(?:강력한|탁월한|확실한|완벽한|즉각적인)\s*(?:항염|항산화|항균|보습|진정|효과|효능)"
     r"|(?:효과|효능)가\s*(?:탁월|확실|완벽)"
     r"|재발(?:을|의)?\s*(?:방지|예방|막)"
     r"|피부(?:의)?\s*(?:해독|디톡스)"
     r"|(?<![가-힣A-Za-z])해독(?:\s*(?:및|과|와)[^,;.!?\n]{0,30})?\s*(?:효과|효능|작용)"
+    r"|(?<![가-힣A-Za-z])해독(?:을|에)?\s*(?:도움|돕|도와|기여)"
 )
 _SAFETY = re.compile(
     r"안전(?:합니다|해요|하다|하며|하고|하므로|한\s*(?:성분|제품))"
@@ -226,6 +232,8 @@ def _codes(sentence: str, *, sensitive: bool, disease_context: bool) -> list[str
     codes: list[str] = ["ingredient_identity_conflict"] if _ingredient_identity_conflict(sentence) else []
     if disease_context and _asserted(_ROOT_CAUSE, sentence, possible=True):
         codes.append("definite_cause")
+    if disease_context and _asserted(_UNASSESSED_SEVERITY, sentence):
+        codes.append("unassessed_severity")
     for clause in _CLAUSE_BREAK.split(sentence):
         if disease_context:
             if _unsupported_location(clause):

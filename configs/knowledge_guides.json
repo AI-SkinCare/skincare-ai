@@ -1,0 +1,232 @@
+[
+  {
+    "id": "ACNE_DIET",
+    "kind": "guide",
+    "title": "여드름과 식사 기록",
+    "publisher": "미국피부과학회",
+    "url": "https://www.aad.org/public/diseases/acne/causes/diet",
+    "text": "일부 관찰 연구에서 우유 섭취와 여드름의 연관성이 보고됐지만, 우유가 개인의 여드름 원인인지 또는 끊어야 하는지 판단할 수는 없습니다. 저혈당 식단에 관한 연구 결과도 일치하지 않습니다. 음식이 신경 쓰인다면 섭취한 음식과 피부 변화를 함께 기록해 보세요.",
+    "tags": "여드름 뾰루지 식습관 식단 식사 음식 식이 혈당 우유 유제품 설탕 당류 acne diet",
+    "date": ""
+  },
+  {
+    "id": "ROS_DIET",
+    "kind": "guide",
+    "title": "주사와 뜨거운 음료",
+    "publisher": "미국피부과학회",
+    "url": "https://www.aad.org/public/diseases/rosacea/triggers/prevent",
+    "text": "뜨거운 음료 뒤 얼굴이 자주 달아오른다면 온도를 낮춰 마셔 보고 변화를 기록할 수 있습니다. 유발 요인은 사람마다 다릅니다.",
+    "tags": "주사 안면홍조 홍조 음료 커피 뜨거운 음식 식습관 rosacea",
+    "date": ""
+  },
+  {
+    "id": "WHO_DIET",
+    "kind": "guide",
+    "title": "일상에서 선택하는 균형 잡힌 식사",
+    "publisher": "세계보건기구",
+    "url": "https://www.who.int/news-room/fact-sheets/detail/healthy-diet",
+    "text": "채소, 과일, 통곡물, 콩류를 다양하게 포함하는 것이 일반 식생활 지침입니다. 이 지침은 특정 피부질환의 치료 식단을 제시하지 않습니다.",
+    "tags": "식습관 식단 식사 음식 통곡물 채소 과일 콩류 영양 균형",
+    "date": ""
+  },
+  {
+    "id": "KR_LABEL",
+    "kind": "guide",
+    "title": "당류와 나트륨 영양표시 읽기",
+    "publisher": "식품의약품안전처 · 식품안전나라",
+    "url": "https://www.foodsafetykorea.go.kr/portal/board/boardDetail.do?bbs_no=bbs420&menu_no=3714&ntctxt_no=1069325",
+    "text": "제품의 영양성분을 비교할 때는 표시 기준이 한 포장인지, 일정량 또는 1회분인지 먼저 확인하세요. 같은 양을 기준으로 당류와 나트륨을 비교할 수 있습니다.",
+    "tags": "영양표시 영양성분표 식습관 가공식품 나트륨 당류 소금 설탕 식품 라벨",
+    "date": ""
+  },
+  {
+    "id": "SUN_LABEL",
+    "kind": "guide",
+    "title": "선크림 포장에서 확인할 세 가지 표시",
+    "publisher": "미국피부과학회",
+    "url": "https://www.aad.org/public/everyday-care/sun-protection/shade-clothing-sunscreen/how-to-select-sunscreen",
+    "text": "광범위 자외선 차단, SPF 30 이상, 내수성 표시를 확인하세요. 완제품의 차단 성능은 개별 성분 이름만으로 판단하기 어렵습니다.",
+    "tags": "선크림 선스크린 자외선 자외선차단제 SPF 내수성 광범위 제품 라벨",
+    "date": ""
+  },
+  {
+    "id": "FDA_FRAGRANCE",
+    "kind": "guide",
+    "title": "화장품의 향료와 알레르기 표시",
+    "publisher": "미국 식품의약국",
+    "url": "https://www.fda.gov/cosmetics/cosmetic-ingredients/allergens-cosmetics",
+    "text": "미국 화장품의 향료 성분은 fragrance 또는 perfume으로 묶어 표시될 수 있습니다. 특정 성분에 알레르기가 있으면 성분표를 확인하고, 표기만으로 불분명하면 제조사에 문의하세요.",
+    "tags": "향료 향수 알레르기 회피 민감성 무향 전성분 화장품 fragrance perfume parfum",
+    "date": ""
+  },
+  {
+    "id": "PATCH",
+    "kind": "guide",
+    "title": "새 화장품을 사용하기 전 확인하기",
+    "publisher": "미국피부과학회",
+    "url": "https://www.aad.org/public/everyday-care/skin-care-secrets/prevent-skin-problems/test-skin-care-products",
+    "text": "새 제품은 작은 부위에 먼저 사용해 반응을 살펴보세요. 붉어짐·가려움·붓기가 나타나면 씻어 내고 사용을 중단하세요. 이 방법으로 알레르기 원인을 진단할 수는 없습니다.",
+    "tags": "새제품 신제품 테스트 패치 민감성 화장품 가려움 자극 알레르기",
+    "date": ""
+  },
+  {
+    "id": "FACE_WASH",
+    "kind": "guide",
+    "title": "얼굴을 부드럽게 씻는 방법",
+    "publisher": "미국피부과학회",
+    "url": "https://www.aad.org/public/everyday-care/skin-care-basics/care/face-washing-101",
+    "text": "미지근한 물과 손끝으로 부드럽게 씻고 수건으로 가볍게 두드려 말리세요. 거친 도구나 세게 문지르는 동작은 피부를 자극할 수 있습니다.",
+    "tags": "세안 세수 세정 세안제 클렌저 스크럽 마찰 얼굴 미온수",
+    "date": ""
+  },
+  {
+    "id": "AHA_SUN",
+    "kind": "guide",
+    "title": "AHA 함유 화장품과 햇빛 노출",
+    "publisher": "미국 식품의약국",
+    "url": "https://www.fda.gov/regulatory-information/search-fda-guidance-documents/guidance-industry-labeling-cosmetics-containing-alpha-hydroxy-acids",
+    "text": "글리콜산·젖산 등 AHA 함유 화장품은 햇빛에 대한 민감도를 높일 수 있습니다. FDA는 사용하는 동안과 중단 후 일주일간 자외선 차단과 햇빛 노출 제한에 관한 표시를 권고합니다.",
+    "tags": "AHA 아하 글리콜산 글리콜릭애씨드 젖산 락틱애씨드 각질 필링 햇빛",
+    "date": ""
+  },
+  {
+    "id": "VANI_MOIST",
+    "kind": "label",
+    "title": "얼굴 보습제의 제조사 성분표 예시",
+    "publisher": "Vanicream",
+    "url": "https://www.vanicream.com/product/vanicream-daily-facial-moisturizer",
+    "text": "Daily Facial Moisturizer의 제조사 전성분에는 글리세린과 여러 종류의 세라마이드가 기재되어 있습니다. 같은 브랜드라도 제품별 제형이 다르므로 구매할 제품의 포장을 확인하세요.",
+    "tags": "바니크림 Vanicream 보습제 제품 성분표 화장품 세라마이드 글리세린",
+    "date": ""
+  },
+  {
+    "id": "VANI_SPF",
+    "kind": "label",
+    "title": "미네랄 선크림의 제조사 라벨 예시",
+    "publisher": "Vanicream",
+    "url": "https://www.vanicream.com/product/facial-moisturizer-with-spf",
+    "text": "Facial Moisturizer Broad Spectrum SPF 30의 미국 제조사 라벨에는 산화아연이 활성 성분으로 기재되어 있습니다. 제품명이 비슷한 다른 제형이나 국내 판매품에는 해당 포장 표시를 확인하세요.",
+    "tags": "바니크림 Vanicream 선크림 화장품 제품 성분표 산화아연 징크옥사이드",
+    "date": ""
+  },
+  {
+    "id": "DIARY",
+    "kind": "guide",
+    "title": "매일 피부 기록의 점수는 어떻게 계산할까요?",
+    "publisher": "SkinCare · 앱 계산 방식",
+    "url": "https://github.com/AI-SkinCare/skincare-frontend/blob/92db1b76654b861a6e2efe8f66b3caf54da0dc4b/SkinCare/Features/Home/DailySkinJournal.swift",
+    "text": "피부 편안함을 직접 입력한 0~10점으로 기록합니다. 변화량은 해당 날짜의 점수에서 직전 기록의 점수를 뺀 값입니다. 날짜가 비어 있으면 건너뛰며, 이 차이만으로 제품 효과를 판단할 수 없습니다.",
+    "tags": "일지 일기 점수 변화량 기록 편안함 매일 계산",
+    "date": ""
+  },
+  {
+    "id": "OILY",
+    "kind": "guide",
+    "title": "지성 피부와 번들거림 관리",
+    "publisher": "미국피부과학회",
+    "url": "https://www.aad.org/public/everyday-care/skin-care-basics/dry/oily-skin",
+    "text": "기름종이를 쓸 때는 얼굴에 가볍게 눌러 유분을 흡수하고 문지르지 마세요. 화장품은 모공을 막지 않는다고 표시된 제품을 살펴보세요.",
+    "tags": "지성 피지 기름 번들거림 기름종이 논코메도제닉",
+    "date": ""
+  },
+  {
+    "id": "ECZEMA_DIET",
+    "kind": "guide",
+    "title": "소아 아토피와 식품 제한",
+    "publisher": "미국피부과학회",
+    "url": "https://www.aad.org/public/diseases/eczema/childhood/treating/food-fix",
+    "text": "아이의 아토피 때문에 우유·달걀 등 여러 식품을 장기간 제외하면 성장과 영양에 영향을 줄 수 있습니다. 음식과 증상의 관계가 의심되면 제외 식단을 시작하기 전에 의료진과 상의하세요.",
+    "tags": "아토피 소아 어린이 아이 습진 우유 달걀 음식 제한식 제거식 식단",
+    "date": ""
+  },
+  {
+    "id": "DANDRUFF",
+    "kind": "guide",
+    "title": "비듬 샴푸의 사용 표시",
+    "publisher": "미국피부과학회",
+    "url": "https://www.aad.org/news/how-to-treat-dandruff",
+    "text": "비듬 샴푸의 두피 접촉 시간은 제품마다 다릅니다. 충분히 헹구고 사용 시간과 방법은 해당 제품 표시를 확인하세요.",
+    "tags": "비듬 두피 지루 샴푸 헹굼 dandruff",
+    "date": ""
+  },
+  {
+    "id": "PORES",
+    "kind": "guide",
+    "title": "모공이 고민일 때의 세안과 제품 선택",
+    "publisher": "미국피부과학회",
+    "url": "https://www.aad.org/public/everyday-care/skin-care-secrets/face/treat-large-pores",
+    "text": "모공이 신경 쓰이면 모공을 막지 않는다고 표시된 제품을 고르고 얼굴을 부드럽게 씻으세요. 피부를 문지르거나 눌러 짜면 자극이 생길 수 있습니다.",
+    "tags": "모공 블랙헤드 세안 자극 논코메도제닉 pores",
+    "date": ""
+  },
+  {
+    "id": "RETINOL",
+    "kind": "guide",
+    "title": "레티놀 제품을 고를 때 고려할 피부 자극",
+    "publisher": "미국피부과학회",
+    "url": "https://www.aad.org/public/everyday-care/skin-care-secrets/anti-aging/retinoid-retinol",
+    "text": "레티노이드 제품은 건조함이나 자극을 일으킬 수 있습니다. 피부에 붉은 기나 염증이 있거나 어느 제품이 맞을지 판단하기 어렵다면 피부과에서 먼저 상담하세요.",
+    "tags": "레티놀 레티노이드 retinol retinoid 자극 건조",
+    "date": ""
+  },
+  {
+    "id": "CHAPPED_LIPS",
+    "kind": "guide",
+    "title": "갈라진 입술에 바르는 제품 고르기",
+    "publisher": "미국피부과학회",
+    "url": "https://www.aad.org/public/everyday-care/skin-care-basics/dry/heal-dry-chapped-lips",
+    "text": "입술이 갈라졌다면 바를 때 따갑거나 화끈거리는 립 제품은 중단하세요. 향이 없는 립밤을 여러 번 바르고, 많이 갈라졌을 때는 흰 바셀린 같은 연고로 수분을 보호할 수 있습니다. 입술을 핥으면 침이 마르면서 더 건조해질 수 있습니다.",
+    "tags": "입술 립밤 갈라짐 입술염 립케어",
+    "date": ""
+  },
+  {
+    "id": "SHAVING",
+    "kind": "guide",
+    "title": "면도 뒤 자극을 줄이는 순서",
+    "publisher": "미국피부과학회",
+    "url": "https://www.aad.org/public/everyday-care/skin-care-basics/hair/how-to-shave",
+    "text": "따뜻한 물로 털을 충분히 적신 뒤 면도 크림이나 젤을 바르세요. 털이 자라는 방향으로 면도하고 한 번 밀 때마다 날을 헹구세요. 여드름이 있는 부위는 가볍게 지나가고 돌출된 병변을 날로 깎지 마세요.",
+    "tags": "면도 면도기 면도날 수염 razor shaving",
+    "date": ""
+  },
+  {
+    "id": "MAKEUP_BRUSH",
+    "kind": "guide",
+    "title": "화장 브러시를 씻고 말리는 방법",
+    "publisher": "미국피부과학회",
+    "url": "https://www.aad.org/public/everyday-care/skin-care-secrets/routine/clean-your-makeup-brushes",
+    "text": "화장 브러시는 7~10일마다 씻으세요. 미지근한 물에 솔 끝을 적시고 순한 샴푸로 씻은 뒤 맑은 물이 나올 때까지 헹구세요. 깨끗한 수건으로 물기를 누르고 솔 끝이 탁자 밖으로 나오도록 눕혀 말리세요.",
+    "tags": "브러시 브러쉬 화장솔 메이크업솔 세척 화장도구",
+    "date": ""
+  },
+  {
+    "id": "POST_WORKOUT",
+    "kind": "guide",
+    "title": "운동 중 땀 닦기와 운동 후 세안",
+    "publisher": "미국피부과학회",
+    "url": "https://www.aad.org/public/diseases/acne/causes/workouts",
+    "text": "운동 전에는 메이크업을 지우고, 운동 중에는 깨끗한 수건으로 땀을 눌러 닦으세요. 운동이 끝나면 가능한 한 빨리 샤워하고, 여드름이 잘 생기는 부위는 순한 오일 프리 세정제로 부드럽게 씻으세요.",
+    "tags": "운동 헬스 땀 운동후 운동복 땀관리",
+    "date": ""
+  },
+  {
+    "id": "ECZEMA_SWIM",
+    "kind": "guide",
+    "title": "아토피가 있는 아이의 수영장 이용",
+    "publisher": "미국피부과학회",
+    "url": "https://www.aad.org/public/diseases/eczema/childhood/triggers/swimming",
+    "text": "피부에 진물이나 열린 상처, 감염이 있거나 습진이 심하게 악화된 날에는 수영장을 피하세요. 수영할 수 있는 날에는 입수 전에 보습제를 바르고, 나온 직후 미지근한 물로 헹군 다음 피부가 조금 촉촉할 때 다시 보습하세요.",
+    "tags": "수영 수영장 물놀이 염소 수영후 입수 아동",
+    "date": ""
+  },
+  {
+    "id": "ACNE_MAKEUP",
+    "kind": "guide",
+    "title": "여드름 피부의 화장과 클렌징",
+    "publisher": "미국피부과학회",
+    "url": "https://www.aad.org/public/diseases/acne/causes/makeup",
+    "text": "메이크업 제품은 포장에서 오일 프리 또는 논코메도제닉 표시를 확인하세요. 자기 전에는 화장을 지우고, 화장이나 브러시를 다른 사람과 함께 쓰지 마세요.",
+    "tags": "메이크업 색조 화장 파운데이션 클렌징 논코메도제닉",
+    "date": ""
+  }
+]
