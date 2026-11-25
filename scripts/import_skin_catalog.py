@@ -14,8 +14,10 @@ import re
 import shutil
 import sqlite3
 import tempfile
+import unicodedata
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
+from zipfile import ZipFile
 
 ROOT = Path(__file__).resolve().parents[1]
 INBOX = ROOT / "data/knowledge-inbox"
@@ -26,7 +28,7 @@ AIHUB = "https://aihub.or.kr/aihubdata/data/view.do?aihubDataSe=data&currMenu=11
 EXPORTS = {"ingredients": ("CCBDE01", "ingredients.xlsx"),
            "reviewed-products": ("CCBDB01", "products.xlsx")}
 FORMATS = {"ingredients": {".xlsx"}, "reviewed-products": {".xlsx"},
-           "nutrition": {".csv"}, "makeup": {".json"}}
+           "nutrition": {".csv"}, "makeup": {".json", ".zip"}}
 
 
 def clean(value):
@@ -110,29 +112,95 @@ def food_rows(path):
                        source, NUTRITION, clean(r.get("데이터생성일자")))
 
 
-def makeup_rows(path):
-    obj = json.loads(path.read_text(encoding="utf-8-sig"))
-    if not isinstance(obj, dict) or not isinstance(obj.get("Annotation_info"), dict) or "Source_info1" not in obj:
-        raise ValueError("AI Hub 71961 질의응답 라벨 JSON이 필요합니다")
-    # Take topics only from the cited source passage, never from the generated recommendation.
-    topics = ("메이크업", "색조", "컨실러", "파운데이션", "자외선", "세안", "클렌징", "여드름", "홍조",
-              "아토피", "피부염", "색소침착", "보습", "피지", "피부장벽", "논코메도제닉", "세라마이드",
-              "나이아신아마이드", "살리실산", "판테놀", "히알루론산", "글리세린", "향료")
-    for i in range(1, 6):
-        ref = obj.get(f"Source_info{i}") or {}
-        title = clean(ref.get(f"Title{i}"))
-        if not title:
-            continue
-        author = clean(ref.get(f"Author Name{i}"))
-        publisher = clean(ref.get(f"Publisher Name (Institution Name){i}"))
-        year = clean(ref.get(f"Year of Publication{i}"))
-        year = year if re.fullmatch(r"[12]\d{3}", year) else ""
-        details = " · ".join(v for v in (author, publisher, year) if v)
-        text = "AI Hub 라벨에 기재된 참고문헌입니다. 링크는 데이터셋 설명으로 연결됩니다."
-        passage = clean(ref.get(f"Knowledge Data{i}")).replace(" ", "")
-        aliases = " ".join(sorted(set(author.split()) | {t for t in topics if t in passage}))
-        yield (identifier("AIHUB-REF-", title, author, publisher, year), title, aliases,
-               (details + ". " if details else "") + text, "AI Hub · 문제성 피부 메이크업 참고문헌", AIHUB, year)
+MAKEUP_TOPICS = (
+    "메이크업", "색조", "컨실러", "파운데이션", "자외선", "세안", "클렌징", "여드름", "홍조",
+    "아토피", "피부염", "지루성피부염", "색소침착", "보습", "피지", "피부장벽", "논코메도제닉",
+    "세라마이드", "나이아신아마이드", "살리실산", "판테놀", "히알루론산", "글리세린", "향료",
+    "민감성", "모세혈관확장", "기미", "주근깨", "모공",
+)
+ACADEMIC_SOURCES = {"국내저널", "해외저널", "국내석사", "해외석사", "국내박사", "해외박사", "국내도서", "해외도서"}
+ANIMAL_TITLE = re.compile(r"\b(?:mice|mouse|murine|dogs?|canine|feline|rats?)\b|생쥐|마우스|흰쥐|반려견", re.I)
+
+
+def makeup_documents(path):
+    if path.suffix.lower() == ".json":
+        yield path.name, json.loads(path.read_bytes())
+        return
+    with ZipFile(path) as archive:
+        members = [item for item in archive.infolist() if not item.is_dir() and item.filename.lower().endswith(".json")]
+        if not members:
+            raise ValueError(f"{path.name}: AI Hub 71961 JSON이 없는 압축입니다")
+        for item in members:
+            try:
+                yield f"{path.name}/{item.filename}", json.loads(archive.read(item))
+            except (ValueError, UnicodeError) as error:
+                raise ValueError(f"{path.name}/{item.filename}: JSON을 읽을 수 없습니다") from error
+
+
+def makeup_source_key(title):
+    return "".join(c for c in unicodedata.normalize("NFKC", title).casefold() if c.isalnum())
+
+
+def makeup_record(ref, suffix, source_type=""):
+    title = clean(ref.get("Title" + suffix))
+    author = clean(ref.get("Author Name" + suffix))
+    publisher = clean(ref.get("Publisher Name (Institution Name)" + suffix))
+    year = clean(ref.get("Year of Publication" + suffix))
+    year = year if re.fullmatch(r"[12]\d{3}", year) else ""
+    details = " · ".join(v for v in (source_type, author, publisher, year) if v)
+    text = "AI Hub 데이터셋에 수록된 참고문헌입니다. 링크를 열면 데이터셋 설명이 표시됩니다."
+    if source_type and publisher and year:
+        identity = (makeup_source_key(title), source_type, makeup_source_key(publisher), year)
+    else:
+        identity = (title, author, publisher, year)
+    row_id = identifier("AIHUB-REF-", *identity)
+    return (row_id, title, author, (details + ". " if details else "") + text,
+            "AI Hub · 문제성 피부 메이크업 참고문헌", AIHUB, year)
+
+
+def makeup_rows(paths):
+    cited = {}
+    topics_by_title = {}
+    bibliography = {}
+    has_source_index = False
+    for path in paths:
+        for name, obj in makeup_documents(path):
+            if not isinstance(obj, dict) or not isinstance(obj.get("Annotation_info"), dict):
+                raise ValueError(f"{name}: AI Hub 71961 라벨 또는 출처 메타데이터가 필요합니다")
+            if "Source_info1" in obj:
+                for i in map(str, range(1, 6)):
+                    ref = obj.get("Source_info" + i) or {}
+                    record = makeup_record(ref, i)
+                    key = makeup_source_key(record[1])
+                    if not key:
+                        continue
+                    cited[record[0]] = record
+                    passage = clean(ref.get("Knowledge Data" + i)).replace(" ", "")
+                    topics_by_title.setdefault(key, set()).update(t for t in MAKEUP_TOPICS if t in passage)
+                continue
+            if not all(isinstance(obj.get(field), dict) for field in ("Data_info", "Source_info", "File_info")):
+                raise ValueError(f"{name}: AI Hub 71961 출처 메타데이터가 필요합니다")
+            has_source_index = True
+            source_type = clean(obj["Source_info"].get("Source"))
+            if source_type not in ACADEMIC_SOURCES:
+                continue
+            annotation = obj["Annotation_info"]
+            ref = {**obj["Data_info"], "Year of Publication": annotation.get("year")}
+            record = makeup_record(ref, "", source_type)
+            key = makeup_source_key(record[1])
+            if not key or ANIMAL_TITLE.search(record[1]):
+                continue
+            # Retain the fuller citation when the provider lists the same work twice.
+            previous = bibliography.get(record[0])
+            if previous is None or len(record[2]) > len(previous[2]):
+                bibliography[record[0]] = record
+            keywords = clean(annotation.get("Main Keywords")).replace(" ", "")
+            topics_by_title.setdefault(key, set()).update(t for t in MAKEUP_TOPICS if t in keywords)
+
+    for row in (bibliography if has_source_index else cited).values():
+        row_id, title, author, description, publisher, url, year = row
+        aliases = " ".join(sorted(set(author.split()) | topics_by_title[makeup_source_key(title)]))
+        yield row_id, title, aliases, description, publisher, url, year
 
 
 def download_mfds(inbox):
@@ -205,29 +273,30 @@ def build_catalog(inbox, output):
                 files = sorted(p for p in folder.rglob("*") if p.is_file() and not p.name.startswith("~$"))
                 for path in files:
                     if path.suffix.lower() not in suffixes:
-                        raise ValueError(f"{path.name}: {group} 폴더는 {sorted(suffixes)} 원본 파일을 받습니다. 압축은 먼저 풀어주세요.")
-                    if group == "nutrition":
-                        rows = food_rows(path)
-                    elif group == "makeup":
-                        rows = makeup_rows(path)
-                    else:
-                        rows = cosmetic_rows(group, path)
-                    try:
-                        for row in rows:
-                            record = (*row, group)
-                            try:
-                                db.execute("INSERT INTO docs VALUES (?,?,?,?,?,?,?,?)", record)
-                                counts[group] += 1
-                            except sqlite3.IntegrityError:
-                                existing = db.execute("SELECT * FROM docs WHERE id=?", (row[0],)).fetchone()
-                                if group == "makeup":
-                                    combined = " ".join(sorted(set(existing[2].split()) | set(record[2].split())))
-                                    db.execute("UPDATE docs SET aliases=? WHERE id=?", (combined, row[0]))
-                                elif existing != record:
-                                    raise ValueError(f"같은 ID의 값이 다릅니다: {row[0]}. 최신 원본만 남겨 주세요.")
-                    except (KeyError, ValueError) as error:
-                        raise ValueError(f"{path.name}: {error}") from error
-                if files and not counts[group]:
+                        raise ValueError(f"{path.name}: {group} 폴더는 {sorted(suffixes)} 원본 파일을 받습니다.")
+                if not files:
+                    continue
+                if group == "makeup":
+                    before = db.total_changes
+                    db.executemany("INSERT INTO docs VALUES (?,?,?,?,?,?,?,?)",
+                                   ((*row, group) for row in makeup_rows(files)))
+                    counts[group] = db.total_changes - before
+                else:
+                    for path in files:
+                        rows = food_rows(path) if group == "nutrition" else cosmetic_rows(group, path)
+                        try:
+                            for row in rows:
+                                record = (*row, group)
+                                try:
+                                    db.execute("INSERT INTO docs VALUES (?,?,?,?,?,?,?,?)", record)
+                                    counts[group] += 1
+                                except sqlite3.IntegrityError:
+                                    existing = db.execute("SELECT * FROM docs WHERE id=?", (row[0],)).fetchone()
+                                    if existing != record:
+                                        raise ValueError(f"같은 ID의 값이 다릅니다: {row[0]}. 최신 원본만 남겨 주세요.")
+                        except (KeyError, ValueError) as error:
+                            raise ValueError(f"{path.name}: {error}") from error
+                if not counts[group]:
                     raise ValueError(f"{group}: 색인할 레코드가 없습니다")
             if not counts:
                 raise ValueError(f"원본 파일이 없습니다: {inbox}")

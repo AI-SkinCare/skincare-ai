@@ -2,6 +2,7 @@ import csv
 import json
 import sqlite3
 from contextlib import closing
+from zipfile import ZipFile
 
 import pytest
 from openpyxl import Workbook
@@ -80,3 +81,42 @@ def test_ceramide_search_omits_veterinary_trial():
     result = retrieve(DEFAULT_DB, KnowledgeQuery(query="세라마이드", kind="research"))
     assert any(s.id.startswith("PMID-") for s in result.sources)
     assert all("dogs with atopic dermatitis" not in s.title.lower() for s in result.sources)
+
+
+def test_import_native_makeup_archives(tmp_path):
+    inbox = tmp_path / "inbox"
+    folder = inbox / "makeup"
+    folder.mkdir(parents=True)
+    citation = "예시 민감성 화장품 연구"
+    label = {
+        "Source_info1": {"Title1": "예시 민감성 화장품연구", "Knowledge Data1": "컨실러"},
+        "Source_info2": {"Title2": "색조 블로그", "Knowledge Data2": "컨실러"},
+        "Annotation_info": {"Makeup Response": "GENERATED-PRIVATE"},
+    }
+    with ZipFile(folder / "TL_example.zip", "w") as archive:
+        archive.writestr("labels/sample.json", json.dumps(label))
+    with ZipFile(folder / "Other.zip", "w") as archive:
+        for i, (title, kind) in enumerate([
+            (citation, "국내저널"),
+            ("예시 민감성 화장품연구", "국내저널"),
+            ("생쥐 피부 연구", "해외저널"),
+            ("색조 블로그", "유튜브, 블로그"),
+            ("예시 색조 도구에 관한 학위논문", "국내석사"),
+        ]):
+            data = {
+                "Data_info": {"Title": title, "Author Name": "예시저자", "Publisher Name (Institution Name)": "예시학회"},
+                "Source_info": {"Source": kind},
+                "File_info": {},
+                "Annotation_info": {"year": "2024", "Main Keywords": "파운데이션"},
+            }
+            archive.writestr(f"{i}.json", json.dumps(data))
+        archive.writestr("sample.doc", "DOCUMENT-PRIVATE")
+    dest = tmp_path / "catalog.sqlite3"
+    assert build_catalog(inbox, dest) == {"makeup": 2}
+    result = retrieve(DEFAULT_DB, KnowledgeQuery(query="컨실러", kind="research"), dest)
+    assert result.sources[0].title == citation and "국내저널" in result.sources[0].text
+    with closing(sqlite3.connect(dest)) as db:
+        content = str(db.execute("SELECT title,text FROM docs").fetchall())
+    assert "학위논문" in content
+    for excluded in ("GENERATED-PRIVATE", "DOCUMENT-PRIVATE", "색조 블로그", "생쥐 피부 연구"):
+        assert excluded not in content

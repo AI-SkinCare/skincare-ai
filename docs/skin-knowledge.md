@@ -50,12 +50,12 @@ python -m pip install "openpyxl>=3.1,<4"
 python scripts/import_skin_catalog.py --download-mfds --download-nutrition
 ```
 
-### 직접 받으면 추가할 수 있는 자료
+### AI Hub 문제성 피부 메이크업 참고문헌
 
-[AI Hub 문제성 피부 메이크업 추천 데이터(71961)](https://aihub.or.kr/aihubdata/data/view.do?aihubDataSe=data&currMenu=115&dataSetSn=71961&topMenu=100)의 **다운로드**에서 로그인·이용 신청 후 라벨링 데이터 중 질의응답 JSON을 받는다. 제공기관이 안내하는 전체 규모는 질의응답 10,043쌍, 지식 데이터 9,377건이다. 서비스에 새로 들어가는 건수는 라벨에 제목이 기재된 고유 참고문헌의 개수다.
+2026-11-25 다운로드분에서 학습·검증 라벨 9,031개와 `Other.zip`의 출처 메타데이터 3,122개를 읽었다. 국내외 학술지, 학위논문, 도서 가운데 중복 및 제목으로 식별한 동물 연구를 정리해 참고문헌 2,712건을 색인했다. 기존 자료와 합해 96,149건을 검색할 수 있다. [AI Hub 데이터 71961](https://aihub.or.kr/aihubdata/data/view.do?aihubDataSe=data&currMenu=115&dataSetSn=71961&topMenu=100)
 
-1. 라벨 압축을 풀어 `data/knowledge-inbox/makeup/` 아래에 JSON을 둔다. 하위 폴더도 읽는다. 필요한 파일에는 `Annotation_info`와 `Source_info1`이 있다.
+1. 라벨링 ZIP과 `Other.zip`을 `data/knowledge-inbox/makeup/` 아래에 둔다. 제공받은 압축을 그대로 읽으며, 풀어 둔 JSON과 하위 폴더도 지원한다.
 2. `python scripts/import_skin_catalog.py`를 실행한다. 다른 데이터 폴더의 원본도 이때 다시 읽으므로 유지한다. 인증키를 입력하거나 파일명을 바꿀 필요는 없다.
-3. 앱의 **연구 문헌**에서 자료 제목·저자 또는 `컨실러`, `논코메도제닉` 같은 주제어로 검색한다. `Source_info1`부터 `Source_info5`에 기재된 제목·저자·발행처·연도를 보존하고, 출처 문단에 실제 등장하는 피부 관리 주제어를 검색에 사용한다. 같은 문헌을 다른 문단에서 인용하면 주제어를 합친다. 링크는 AI Hub 데이터셋 설명으로 연결된다. 생성형 질의응답, 대상자 설문과 라벨의 약물 조언은 개인 추천의 근거로 사용하지 않는다.
+3. 앱의 **연구 문헌**에서 제목·저자 또는 `컨실러`, `논코메도제닉` 같은 주제어로 검색한다. 참고문헌의 제목·저자·발행처·연도와 문헌 유형을 보존한다. 라벨의 인용 제목을 출처 목록의 제목과 대조해 일치하는 참고문헌에 주제어를 더한다. 출처 목록은 개별 논문의 URL을 제공하지 않아 링크는 AI Hub 데이터셋 설명으로 연결된다.
 
 수동으로 받은 공식 파일도 같은 명령으로 가져올 수 있다. 식약처 원료성분 엑셀은 `ingredients/`, 심사 품목 엑셀은 `reviewed-products/`, 전국통합식품영양성분 CSV는 `nutrition/`에 둔다. 이 폴더들은 모두 `data/knowledge-inbox/` 아래에 있다. 입력 파일과 국내 DB는 각 서버의 로컬 데이터 디렉터리에 보관한다. 중복 레코드는 한 번만 색인하고, 상충하는 값이나 잘못된 파일이 발견되면 오류를 표시하고 기존 검색 DB를 유지한다.
