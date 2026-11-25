@@ -1,6 +1,6 @@
 {
-  "version": "ingredient_evidence_20261112_v2",
-  "reviewed_at": "2026-11-12",
+  "version": "ingredient_evidence_20261125_v3",
+  "reviewed_at": "2026-11-25",
   "review_type": "source_reading_by_software_agent_not_clinician_review",
   "scope": "cosmetic_support_only_not_diagnosis_or_prescription",
   "sources": {
@@ -57,6 +57,33 @@
       "title": "Draelos et al. 2005, niacinamide-containing moisturizer in rosacea",
       "kind": "primary_small_formulation_study",
       "summary": "주사 대상자 50명이 나이아신아마이드 함유 보습제를 4주 사용한 연구다. 얼굴 무처치 대조가 아닌 팔 부위 비교를 포함하며 초록에 농도와 정량 결과가 없다. 단일 성분 효과·치료·미백 효과는 확정하지 않는다."
+    },
+    "GIAM_AD_REVIEW": {
+      "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC4850335/",
+      "title": "Giam 외 · 아토피 피부염의 목욕 후 보습 (2016)",
+      "catalog_title": "A review on the role of moisturizers for atopic dermatitis",
+      "kind": "narrative_review_with_expert_recommendations",
+      "summary": "아토피 피부의 건조함을 관리하려면 목욕 후 보습제를 바르고 정기적으로 사용하세요. 문헌 고찰은 글리세린을 수분을 끌어당기는 보습 성분의 예로 들었으며, 보습제 간 비교 연구는 제한적입니다.",
+      "guide_tags": "giam 아토피피부염 목욕 보습 문헌고찰",
+      "publication_year": "2016"
+    },
+    "LEVIN_ROS_REVIEW": {
+      "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC3168246/",
+      "title": "Levin·Miller · 주사 피부의 세안과 보습 (2011)",
+      "catalog_title": "A Guide to the Ingredients and Potential Benefits of Over-the-Counter Cleansers and Moisturizers for Rosacea Patients",
+      "kind": "narrative_review_of_small_formulation_studies",
+      "summary": "주사 피부의 일상 관리에는 순하고 비알칼리성인 세정제와 자극이 적은 보습제를 선택할 수 있습니다. 이 문헌 고찰에 실린 소규모 제형 비교에서는 피부 건조함이 줄었고 홍반의 뚜렷한 개선은 확인되지 않았습니다.",
+      "guide_tags": "levin 비알칼리성 순한 세정제",
+      "publication_year": "2011"
+    },
+    "SU_SENSITIVE_CER": {
+      "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC12274965/",
+      "title": "Su 외 · 민감성 피부의 세라마이드 NP 함유 크림 (2025)",
+      "catalog_title": "The Effectiveness and Safety of a Skin Care Product With Centella asiatica Leaf Extract, Ceramide NP, and Panthenol in Subjects With Sensitive Skin: A Prospective, Observational Study",
+      "kind": "primary_prospective_self_controlled_formulation_study",
+      "summary": "민감성 피부의 중국 여성 88명이 세라마이드 NP·병풀잎 추출물·판테놀을 함께 함유한 크림을 사용한 단일기관 전후 비교 연구입니다. 수분 지표가 개선됐으며 별도 대조군이 없고 제조사가 연구비를 지원했습니다. 개별 성분의 기여도는 구분할 수 없습니다.",
+      "guide_tags": "su 판테놀 병풀잎 민감성피부",
+      "publication_year": "2025"
     }
   },
   "claims": [
@@ -79,7 +106,8 @@
       ],
       "sources": [
         "AAD_DRY",
-        "GLY_RCT"
+        "GLY_RCT",
+        "GIAM_AD_REVIEW"
       ],
       "effect": "글리세린 함유 보습 제형은 피부 수분 유지와 건조함 관리에 도움을 줄 수 있다.",
       "evidence_scope": "dry_skin_guidance_and_specific_glycerol_formulation_trial",
@@ -105,11 +133,12 @@
       ],
       "sources": [
         "CER_RCT",
-        "AAD_AD"
+        "AAD_AD",
+        "SU_SENSITIVE_CER"
       ],
       "effect": "세라마이드 함유 보습 제형은 수분 유지와 피부 장벽 보조 관리의 후보가 될 수 있다.",
       "evidence_scope": "adult_eczema_combination_cream_cleanser_not_isolated_ingredient",
-      "limitations": "복합 제형 연구로 세라마이드 단독 효과나 다른 세라마이드 종류의 동등성, 질환 치료를 확정하지 않는다.",
+      "limitations": "습진과 민감성 피부에서 서로 다른 복합 제형을 연구했다. 민감성 피부 연구에는 별도 대조군이 없었다. 세라마이드 단독 효과나 다른 제형의 동등성, 질환 치료 효과를 확정할 수 없다.",
       "conditions": [
         "무향의 완제품 보습제를 제품 표시대로 사용한다.",
         "자극이 생기면 사용을 중단한다."

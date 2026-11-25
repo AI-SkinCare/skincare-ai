@@ -197,9 +197,17 @@ def makeup_rows(paths):
             keywords = clean(annotation.get("Main Keywords")).replace(" ", "")
             topics_by_title.setdefault(key, set()).update(t for t in MAKEUP_TOPICS if t in keywords)
 
+    evidence = json.loads((ROOT / "configs/ingredient_evidence.json").read_text(encoding="utf-8"))
+    verified = {makeup_source_key(ref["catalog_title"]): ref for ref in evidence["sources"].values()
+                if ref.get("catalog_title")}
     for row in (bibliography if has_source_index else cited).values():
         row_id, title, author, description, publisher, url, year = row
-        aliases = " ".join(sorted(set(author.split()) | topics_by_title[makeup_source_key(title)]))
+        key = makeup_source_key(title)
+        aliases = " ".join(sorted(set(author.split()) | topics_by_title[key]))
+        ref = verified.get(key)
+        if ref and year == ref["publication_year"]:
+            description = ref["summary"]
+            url = ref["url"]
         yield row_id, title, aliases, description, publisher, url, year
 
 

@@ -30,6 +30,11 @@ def load_evidence(path=DEFAULT_PATH):
     obj = json.loads(path.read_text(encoding='utf-8'))
     if obj['scope'] != 'cosmetic_support_only_not_diagnosis_or_prescription':
         raise ValueError('invalid evidence scope')
+    for ref in obj['sources'].values():
+        url = ref['url']
+        if (not url.startswith(('https://www.aad.org/', 'https://pubmed.ncbi.nlm.nih.gov/'))
+                and not re.fullmatch(r'https://pmc\.ncbi\.nlm\.nih\.gov/articles/PMC[0-9]+/', url)):
+            raise ValueError('unreviewed source host')
     ids = set()
     aliases = {}
     for c in obj['claims']:
@@ -40,10 +45,8 @@ def load_evidence(path=DEFAULT_PATH):
             if key(alias) in aliases and aliases[key(alias)] != c['ingredient']:
                 raise ValueError('ambiguous ingredient alias')
             aliases[key(alias)] = c['ingredient']
-        for sid in c['sources']:
-            url = obj['sources'][sid]['url']
-            if not url.startswith(('https://www.aad.org/', 'https://pubmed.ncbi.nlm.nih.gov/')):
-                raise ValueError('unreviewed source host')
+        if any(sid not in obj['sources'] for sid in c['sources']):
+            raise ValueError('missing evidence source')
         if not c['conditions'] or not c['limitations'] or not c['evidence_scope']:
             raise ValueError('missing evidence bounds')
     obj['sha256'] = hashlib.sha256(path.read_bytes()).hexdigest()

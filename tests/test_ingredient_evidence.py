@@ -47,6 +47,8 @@ def test_valid_source_binding_is_not_clinical_approval():
     assert out.ingredient_evidence[0]['sources'][0]['url'].startswith('https://')
     assert not rev['clinical_entailment_verified']
     assert out.ingredients[0].purpose_source=='model'
+    refs = out.ingredient_evidence[0]['sources']
+    assert any(s['url'].endswith('/PMC4850335/') for s in refs)
 
 
 @pytest.mark.parametrize('text,code',[

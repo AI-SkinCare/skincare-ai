@@ -132,10 +132,14 @@ def local_records():
     for sid, ref in store["sources"].items():
         claims = [c for c in store["claims"] if sid in c["sources"]]
         # Index what this source itself covers, not every ingredient on a multi-source card.
-        tags = topics.get(sid, "") + " " + " ".join(a for c in claims
-            if any(alias.lower() in ref["summary"].lower() for alias in c["aliases"]) for a in c["aliases"])
+        tags = ref.get("guide_tags")
+        if tags is None:
+            tags = topics.get(sid, "") + " " + " ".join(a for c in claims
+                if any(alias.lower() in ref["summary"].lower() for alias in c["aliases"]) for a in c["aliases"])
+        publisher = "미국피부과학회" if sid.startswith("AAD_") else (
+            "미국 국립의학도서관 · PubMed Central" if ref["url"].startswith("https://pmc.ncbi.nlm.nih.gov/") else "PubMed")
         guides.append(dict(id=sid, kind="guide", tags=tags, title=ref["title"], text=ref["summary"],
-            publisher="미국피부과학회" if sid.startswith("AAD_") else "PubMed", url=ref["url"], date=""))
+            publisher=publisher, url=ref["url"], date=ref.get("publication_year", "")))
     return guides
 
 

@@ -102,21 +102,36 @@ def test_import_native_makeup_archives(tmp_path):
             ("생쥐 피부 연구", "해외저널"),
             ("색조 블로그", "유튜브, 블로그"),
             ("예시 색조 도구에 관한 학위논문", "국내석사"),
+            ("A review on the role of moisturizers for atopic dermatitis", "해외저널"),
         ]):
             data = {
                 "Data_info": {"Title": title, "Author Name": "예시저자", "Publisher Name (Institution Name)": "예시학회"},
                 "Source_info": {"Source": kind},
                 "File_info": {},
-                "Annotation_info": {"year": "2024", "Main Keywords": "파운데이션"},
+                "Annotation_info": {"year": "2016" if kind == "해외저널" else "2024",
+                                    "Main Keywords": "파운데이션"},
             }
             archive.writestr(f"{i}.json", json.dumps(data))
         archive.writestr("sample.doc", "DOCUMENT-PRIVATE")
     dest = tmp_path / "catalog.sqlite3"
-    assert build_catalog(inbox, dest) == {"makeup": 2}
+    assert build_catalog(inbox, dest) == {"makeup": 3}
     result = retrieve(DEFAULT_DB, KnowledgeQuery(query="컨실러", kind="research"), dest)
     assert result.sources[0].title == citation and "국내저널" in result.sources[0].text
+    result = retrieve(DEFAULT_DB, KnowledgeQuery(query="role of moisturizers atopic dermatitis", kind="research"), dest)
+    assert any(s.url == "https://pmc.ncbi.nlm.nih.gov/articles/PMC4850335/" for s in result.sources)
     with closing(sqlite3.connect(dest)) as db:
         content = str(db.execute("SELECT title,text FROM docs").fetchall())
     assert "학위논문" in content
     for excluded in ("GENERATED-PRIVATE", "DOCUMENT-PRIVATE", "색조 블로그", "생쥐 피부 연구"):
         assert excluded not in content
+
+
+@pytest.mark.parametrize("query,source,article", [
+    ("Giam 아토피 목욕 후 보습", "GIAM_AD_REVIEW", "PMC4850335"),
+    ("Levin 주사 피부의 순한 세정제", "LEVIN_ROS_REVIEW", "PMC3168246"),
+    ("Su 민감성 크림", "SU_SENSITIVE_CER", "PMC12274965"),
+])
+def test_care_guides_resolve_to_the_reviewed_full_text(query, source, article):
+    result = retrieve(DEFAULT_DB, KnowledgeQuery(query=query))
+    assert result.answerSourceId == source
+    assert result.sources[0].url == f"https://pmc.ncbi.nlm.nih.gov/articles/{article}/"
